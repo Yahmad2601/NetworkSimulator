@@ -1,0 +1,47 @@
+1. The Layer 3 Routing Simulator
+
+Purpose: To visualize how a router processes a packet at Layer 3. It demonstrated peeling off the Layer 2 MAC header, reading the IP address, applying the "Longest Prefix Match" logic against a routing table, decrementing the TTL (Time to Live), and re-encapsulating the packet before sending it out.
+
+2. The Network Switching Simulator
+
+Purpose: To contrast historical and modern networking architectures. It visually compared the inefficient, dedicated-path locking of Circuit Switching (like old telephones) against the highly resilient, dynamic routing of Packet Switching (how the modern internet works).
+
+3. The Layer 4 Port Multiplexing Simulator (IoT Focus)
+
+Purpose: To explain how a single IP address can handle multiple applications simultaneously. It showed a server acting as a receptionist, reading Layer 4 port numbers (Port 80 for Web, Port 22 for SSH, Port 1883 for MQTT) to route incoming packets to the exact right software.
+
+4. The TCP Sliding Window Simulator
+
+Purpose: To visualize Layer 4 Flow Control. It allowed you to manually adjust a "Window Size" slider to see how a receiving computer dictates exactly how much data a sender is allowed to put on the wire, preventing the receiver's memory buffer from overflowing.
+
+5. The Layer 5 Session Checkpointing Simulator
+
+Purpose: To demonstrate why the Session Layer is critical for large downloads. It compared a file transfer with and without Layer 5. When a network drop was simulated, it showed how checkpoints allow a download to resume from the last saved marker rather than starting entirely over from 0%.
+
+6. The Presentation Layer (Layer 6) Transformation Simulator
+
+Purpose: To visualize the "Three C's" of Layer 6. It allowed you to type a raw message and toggle switches to watch the data structurally transform via Coding (formatting to JSON), Cryptography (scrambling the text), and Compression (shrinking the file size).
+
+7. The Layer 7 Protocol Simulator
+
+Purpose: To bridge the gap between human actions and network rules. It allowed you to click user actions (like "Send Email" or "Visit Website") and watch how Layer 7 translates that human intent into the correct network protocol (SMTP or HTTP) before passing it down the stack.
+
+8. The Complete OSI Encapsulation & Decapsulation Simulator
+
+Purpose: The grand finale of the OSI model. It provided a full, step-by-step visualizer of the "Russian Nesting Doll" concept. It showed headers (L7H, TCP, IP, MAC) being added as data travels down the stack to the wire, and being peeled away as it travels up the stack to the receiver.
+
+9. The ARP and ARP Spoofing Simulator
+
+Purpose: To demonstrate physical-layer vulnerabilities. It showed how standard ARP maps an IP address to a MAC address, and then visualized how an attacker abuses this stateless protocol to execute a Man-in-the-Middle (MITM) attack by poisoning the ARP caches of local routers and computers.
+
+10. The TCP/IP 4-Layer Stack Visualizer
+
+Purpose: To map theory to reality. It visualized the Department of Defense's pragmatic 4-layer model (Application, Transport, Internet, Network Interface). It showed how different user tasks dynamically dictate which protocols (e.g., TCP vs. UDP) are selected as data drops down the stack.
+
+11. The Network Transmission Simulator (Cast Types)
+
+Purpose: To visualize how network traffic flows based on addressing. It demonstrated the exact physical routing differences between Unicast (1-to-1), Broadcast (1-to-All), Multicast (1-to-Subscribed Group), and Anycast (1-to-Physically Nearest).
+
+12. The Well-Known Ports Multiplexing Simulator
+
+Purpose: A secondary, deeper dive into Layer 4. It visualized how modern web servers specifically handle encrypted vs. unencrypted traffic using standard well-known ports, rejecting traffic (like Telnet on Port 23) if no application is actively listening.
