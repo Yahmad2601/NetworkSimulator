@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, ShieldCheck } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 export interface FooterControl {
   type: "button" | "toggle" | "segmented" | "slider" | "stat" | "spacer";
@@ -186,12 +186,7 @@ export default function SimulatorLayout({
             <span className="text-xs uppercase tracking-widest" style={{ fontSize: 9 }}>Menu</span>
           </button>
           <div className="w-px h-5 bg-white/8" />
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-            style={{ background: `linear-gradient(135deg, ${layerColor}, ${layerColor}99)` }}
-          >
-            <ShieldCheck size={16} className="text-[#0a0e14]" />
-          </div>
+          <img src="/logo.png" alt="Globaltech" className="h-8 w-auto" />
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-white font-bold tracking-tight text-sm leading-none" style={{

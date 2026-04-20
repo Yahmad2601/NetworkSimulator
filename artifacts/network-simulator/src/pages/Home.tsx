@@ -1,5 +1,5 @@
 import { useLocation } from "wouter";
-import { ShieldCheck, ChevronRight, Layers, Zap, Lock } from "lucide-react";
+import { ChevronRight, Layers, Zap, Lock } from "lucide-react";
 import { SIMULATORS } from "../data/simulators";
 
 const difficultyColor = {
@@ -21,24 +21,8 @@ export default function Home() {
         className="flex items-center justify-between px-8 py-4 border-b border-white/5 shrink-0"
         style={{ background: "rgba(13,21,32,0.95)", backdropFilter: "blur(12px)" }}
       >
-        <div className="flex items-center gap-3">
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg, #06b6d4, #0891b2)" }}
-          >
-            <ShieldCheck size={22} className="text-[#0a0e14]" />
-          </div>
-          <div>
-            <h1
-              className="text-white font-bold text-xl leading-none"
-              style={{ textShadow: "0 0 20px rgba(6,182,212,0.5), 0 0 40px rgba(6,182,212,0.2)" }}
-            >
-              NetSec Academy
-            </h1>
-            <p className="text-slate-500 uppercase tracking-widest mt-0.5" style={{ fontSize: 10 }}>
-              Interactive Network Protocol Simulators
-            </p>
-          </div>
+        <div className="flex items-center">
+          <img src="/logo.png" alt="Globaltech World Computer Institute" className="h-12 w-auto" />
         </div>
 
         <div className="flex items-center gap-4">
