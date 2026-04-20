@@ -1,0 +1,48 @@
+# Context & Role
+You are an expert frontend engineer and UI/UX designer specializing in high-fidelity, interactive dashboards. Your task is to build a "Cybersecurity Network Simulator" MVP. This is an educational tool designed to help students visualize invisible network traffic and security concepts. 
+
+Please build a responsive, single-page application (React + Tailwind CSS preferred) based on the following guidelines.
+
+# The "Vibe" & Design System
+We are going for a futuristic, dark-mode "command center" aesthetic. It should feel highly technical but clean and modern, avoiding cheesy hacker tropes.
+- **Base Background:** Deep Obsidian (`bg-[#0a0e14]`).
+- **Panel Backgrounds:** Slightly lighter dark blue/grey (`bg-[#141b24]`) with very subtle white borders (`border-white/5`).
+- **Accent Colors:** Vibrant Cyan (`#06b6d4`) for primary actions/active states, and Teal (`#14b8a6`) for success/status indicators. Use Red for error states.
+- **Typography:** Use a clean, modern sans-serif (e.g., Inter, Roboto, or General Sans). 
+- **Text Styling:** Use bold, tight-tracking for headings (add a subtle cyan text-shadow to primary titles). Use uppercase, wide-tracking (`tracking-widest`), and small font sizes (10-12px) for utility labels and badges. Body text should be muted slate (`text-slate-400`).
+- **Effects:** Use Glassmorphism heavily (`backdrop-blur-md`, `bg-opacity-70`) for overlays and floating panels. Use soft drop-shadows and inner glows to give elements depth.
+
+# Layout Architecture
+Create an app-like layout that takes up the full viewport height (`h-screen`).
+- **Desktop View:** Fixed Header at the top. The main body is split: a large, expansive Central Canvas on the left/center, and a fixed 320px Sidebar on the right. A Control Footer floats or sticks to the bottom.
+- **Mobile/Tablet View:** Gracefully degrade the layout. Stack the header, canvas (allow panning/scrolling), footer controls, and move the sidebar logs to a bottom sheet or stacked list at the very bottom.
+
+# Core Components to Build
+
+## 1. Top Header
+- Left side: A glowing dashboard title and a muted subtitle.
+- Right side: A "Status Capsule" with a dark background. Inside, include a pulsing teal dot indicator (simulating "Network Live") and a couple of mock data points (e.g., "Uptime", "Latency") separated by vertical dividers.
+
+## 2. Interactive Network Canvas
+- This is the main central workspace (`bg-[#0c1219]` with rounded corners).
+- **Network Nodes:** Create mock circular nodes representing devices. They should have dark backgrounds, cyan borders, and center icons (e.g., router, server, laptop). Place a pill-shaped label under them with a mock IP address. 
+- **Hover States:** When hovering over a node, scale it up slightly (`scale-105`), turn the border solid cyan, and add a heavy cyan drop-shadow.
+- **Connection Lines:** Connect some of the nodes with SVG lines. Use CSS to create a "marching ants" or flowing line animation along the paths.
+- **Animated Packets:** Add a glowing cyan dot (with a blur filter) that animates along one or two of the SVG connection lines to simulate live data traffic.
+
+## 3. Right Sidebar (Live Logs)
+- Create a container for a "Live Traffic Log". 
+- Style the scrollbar to be dark and minimal.
+- Populate it with mock timestamped network events (e.g., "10:42:01 - ARP Request Broadcast", "10:42:05 - TCP Handshake OK").
+- At the bottom of the sidebar, include a colorful gradient CTA card (Cyan to Teal) titled "System Insight" with a mock educational tip.
+
+## 4. Control Footer
+- A horizontal control bar resting at the bottom of the screen.
+- Include a pill-shaped segmented control (e.g., "Simulation Mode", "Live Mode").
+- Include primary action buttons like "Run Discovery" (Teal background, scales up on hover) and secondary actions like "Reset Matrix" (subtle dark background, text turns red on hover). Make the buttons large and fully rounded (pill-shaped).
+
+# Developer Guidelines
+- Use your best judgment to fill in gaps. Create mock state arrays for the logs and nodes so the UI feels alive.
+- Ensure transitions (hover states, scaling) are smooth (`transition-all duration-300`).
+- Use standard icon libraries (like Lucide React or Heroicons) for the node devices and UI elements.
+- Prioritize visual polish, layout structure, and the overall "feel" of the application over complex backend logic for this MVP.
