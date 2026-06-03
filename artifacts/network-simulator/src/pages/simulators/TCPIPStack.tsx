@@ -1,219 +1,256 @@
-import { useState } from "react";
-import { RefreshCw, Globe, MessageSquare, Video, Folder } from "lucide-react";
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Send, Play, RefreshCw, Layers } from "lucide-react";
 import SimulatorLayout, { FooterControl } from "../../components/SimulatorLayout";
 
-interface Task { id: string; label: string; icon: React.ReactNode; protocol: string; transport: "TCP" | "UDP"; color: string; layers: LayerData[]; }
-interface LayerData { layer: string; protocol: string; pdu: string; info: string; color: string; }
-
-const TASKS: Task[] = [
-  {
-    id: "web", label: "Browse Website", icon: <Globe size={14} />, protocol: "HTTP/2", transport: "TCP", color: "#06b6d4",
-    layers: [
-      { layer: "Application", protocol: "HTTP/2", pdu: "Message", info: "GET /index.html Host: example.com", color: "#14b8a6" },
-      { layer: "Transport", protocol: "TCP", pdu: "Segment", info: "SYN → SYN-ACK → ACK (reliable, ordered)", color: "#8b5cf6" },
-      { layer: "Internet", protocol: "IPv4", pdu: "Packet", info: "Src: 10.0.0.5 → Dst: 93.184.216.34 TTL:64", color: "#06b6d4" },
-      { layer: "Network Interface", protocol: "Ethernet II", pdu: "Frame", info: "MAC: aa:bb:cc → ff:ee:dd FCS: valid", color: "#f59e0b" },
-    ],
+const SCENARIOS = [
+  { 
+    id: 'web', name: 'Secure Web App', desc: 'HTTPS / TCP / IPv4', 
+    app: { text: '[ DATA ]', subtext: 'HTTPS Payload (TLS v1.3)', raw: '16 03 03 00 28 ...' },
+    l4: { proto: 'TCP', label: '[ TCP HEADER ]', src: '49152', dst: '443' },
+    l3: { proto: 'IPv4', label: '[ IPv4 HEADER ]', src: '10.0.0.50', dst: '104.18.2.1' },
+    l2: { header: '[ ETHERNET HEADER ]', trailer: '[ FCS ]', macSrc: '00:1A:2B:3C:4D:5E', macDst: 'C4:22:98:A2:11:BB' } 
   },
-  {
-    id: "voip", label: "VoIP Call", icon: <MessageSquare size={14} />, protocol: "SIP/RTP", transport: "UDP", color: "#ec4899",
-    layers: [
-      { layer: "Application", protocol: "SIP + RTP", pdu: "Audio Stream", info: "RTP payload type: G.711 PCMU 64kbps", color: "#ec4899" },
-      { layer: "Transport", protocol: "UDP", pdu: "Datagram", info: "No handshake — low latency, loss-tolerant", color: "#f97316" },
-      { layer: "Internet", protocol: "IPv4", pdu: "Packet", info: "DSCP: EF (Expedited Forwarding) QoS marked", color: "#06b6d4" },
-      { layer: "Network Interface", protocol: "Ethernet II", pdu: "Frame", info: "VLAN tagged 802.1Q priority 5 (voice)", color: "#f59e0b" },
-    ],
+  { 
+    id: 'mqtt', name: 'IoT Telemetry', desc: 'MQTT / TCP / IPv4',
+    app: { text: '[ DATA ]', subtext: 'MQTT Publish: {temp: 24.5}', raw: '30 0F 00 05 73 74 6F...' },
+    l4: { proto: 'TCP', label: '[ TCP HEADER ]', src: '50321', dst: '1883' },
+    l3: { proto: 'IPv4', label: '[ IPv4 HEADER ]', src: '192.168.1.15', dst: '3.88.24.19' },
+    l2: { header: '[ ETHERNET HEADER ]', trailer: '[ FCS ]', macSrc: '00:11:22:33:44:55', macDst: 'AA:BB:CC:DD:EE:FF' } 
   },
-  {
-    id: "stream", label: "Stream Video", icon: <Video size={14} />, protocol: "HLS/DASH", transport: "TCP", color: "#a855f7",
-    layers: [
-      { layer: "Application", protocol: "HLS/DASH", pdu: "Segment", info: "MPEG-TS segment: 6s, 4K @15Mbps", color: "#a855f7" },
-      { layer: "Transport", protocol: "TCP", pdu: "Segment", info: "Large receive window, TLS 1.3 encrypted", color: "#8b5cf6" },
-      { layer: "Internet", protocol: "IPv4", pdu: "Packet", info: "CDN Anycast — routed to nearest edge", color: "#06b6d4" },
-      { layer: "Network Interface", protocol: "Ethernet II", pdu: "Frame", info: "Jumbo frames (9000 MTU) for throughput", color: "#f59e0b" },
-    ],
+  { 
+    id: 'video', name: 'Live Video Call', desc: 'WebRTC / UDP / IPv4',
+    app: { text: '[ DATA ]', subtext: 'Video Frame (VP9/H.264)', raw: '80 60 00 01 02 03 04...' },
+    l4: { proto: 'UDP', label: '[ UDP HEADER ]', src: '5004', dst: '5004' },
+    l3: { proto: 'IPv4', label: '[ IPv4 HEADER ]', src: '198.51.100.42', dst: '10.0.0.50' },
+    l2: { header: '[ ETHERNET HEADER ]', trailer: '[ FCS ]', macSrc: '01:23:45:67:89:AB', macDst: 'C4:22:98:A2:11:BB' } 
   },
-  {
-    id: "iot", label: "IoT Telemetry", icon: <Folder size={14} />, protocol: "MQTT", transport: "TCP", color: "#10b981",
-    layers: [
-      { layer: "Application", protocol: "MQTT 5.0", pdu: "PUBLISH", info: "Topic: sensors/temp QoS:1 retain:true", color: "#10b981" },
-      { layer: "Transport", protocol: "TCP", pdu: "Segment", info: "Port 1883, keepalive 60s PINGREQ/PINGRESP", color: "#8b5cf6" },
-      { layer: "Internet", protocol: "IPv6", pdu: "Packet", info: "fe80::1 → 2001:db8::1 (IoT uses IPv6)", color: "#06b6d4" },
-      { layer: "Network Interface", protocol: "IEEE 802.15.4", pdu: "Frame", info: "Zigbee/Thread low-power radio link", color: "#f59e0b" },
-    ],
+  { 
+    id: 'voip', name: 'VoIP Audio', desc: 'RTP / UDP / IPv6',
+    app: { text: '[ DATA ]', subtext: 'RTP Audio Codec (G.711)', raw: '80 00 0A C1 00 00 D4...' },
+    l4: { proto: 'UDP', label: '[ UDP HEADER ]', src: '16384', dst: '16384' },
+    l3: { proto: 'IPv6', label: '[ IPv6 HEADER ]', src: '2001:db8::1', dst: '2001:db8::2' },
+    l2: { header: '[ ETHERNET HEADER ]', trailer: '[ FCS ]', macSrc: '00:14:22:01:23:45', macDst: '00:08:A1:B2:C3:D4' } 
   },
 ];
 
-export default function TCPIPStack() {
-  const [selected, setSelected] = useState<Task | null>(null);
-  const [activeLayer, setActiveLayer] = useState<number>(-1);
+const DOD_LAYERS = [
+  { id: 1, name: "Application", color: "#a855f7" },
+  { id: 2, name: "Transport", color: "#06b6d4" },
+  { id: 3, name: "Internet", color: "#f59e0b" },
+  { id: 4, name: "Network Access", color: "#22c55e" },
+];
 
-  const handleSelect = (task: Task) => {
-    setSelected(task);
-    setActiveLayer(-1);
-    let i = 0;
-    const iv = setInterval(() => {
-      setActiveLayer(i);
-      i++;
-      if (i >= 4) clearInterval(iv);
-    }, 600);
-  };
+export default function TCPIPStack() {
+  const [scenario, setScenario] = useState(SCENARIOS[0]);
+  const [step, setStep] = useState(0); // 0 = Ready, 1-4 = Layers, 5 = Transmit
+
+  const isBinary = step === 5;
 
   const footerControls: FooterControl[] = [
-    {
-      key: "transport", type: "stat",
-      stat: {
-        label: "Transport",
-        value: selected ? selected.transport : "—",
-        color: selected?.transport === "TCP" ? "#8b5cf6" : selected?.transport === "UDP" ? "#f97316" : "#475569",
-      },
+    { 
+      key: "btn1", 
+      type: "button", 
+      label: step === 0 ? "Start Encapsulation" : step === 4 ? "Transmit Data" : step === 5 ? "Reset Simulation" : "Next Layer", 
+      variant: step === 5 ? "secondary" : "cyan", 
+      icon: step === 0 ? <Play size={12} /> : step === 5 ? <RefreshCw size={12} /> : <Send size={12} />,
+      onClick: () => {
+        if (step === 5) setStep(0);
+        else setStep(s => s + 1);
+      } 
     },
-    {
-      key: "protocol", type: "stat",
-      stat: { label: "Protocol", value: selected?.protocol ?? "—", color: selected?.color ?? "#475569" },
-    },
-    { key: "sp", type: "spacer" },
-    {
-      key: "tcp-info", type: "stat",
-      stat: {
-        label: "TCP vs UDP",
-        value: selected?.transport === "TCP" ? "Reliable, Ordered" : selected?.transport === "UDP" ? "Fast, Lossy OK" : "—",
-        color: selected?.transport === "TCP" ? "#8b5cf6" : "#f97316",
-      },
-    },
-    { key: "reset", type: "button", label: "Reset", variant: "danger", icon: <RefreshCw size={12} />, onClick: () => { setSelected(null); setActiveLayer(-1); } },
   ];
+
+  const PDUVisual = () => (
+    <motion.div 
+       layoutId="pdu_container" 
+       className={`flex items-stretch shadow-[0_0_30px_rgba(0,0,0,0.5)] h-16 origin-center absolute z-30 ${isBinary ? 'rounded-full' : 'rounded'}`}
+       initial={{ y: -50, opacity: 0 }}
+       animate={
+         isBinary 
+           ? { x: "150vw", opacity: 0, scale: 0.5, transition: { duration: 1.2, ease: "easeIn" } } 
+           : { y: 0, x: 0, opacity: 1, scale: 1, transition: { type: "spring", stiffness: 300, damping: 25 } }
+       }
+    >
+      {isBinary ? (
+         <motion.div layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center text-[#22c55e] font-mono text-xl tracking-[0.2em] px-8 font-bold bg-[#22c55e]/10 border border-[#22c55e] rounded-full whitespace-nowrap shadow-[0_0_20px_rgba(34,197,94,0.4)]">
+            1010101010111100010101001010101011110
+         </motion.div>
+      ) : (
+         <>
+           {/* Layer 1: Network Trailer (rendered early so it's ready but empty until condition met if we wanted, but AnimatePresence wraps it) */}
+           <AnimatePresence>
+             {step >= 4 && (
+                <motion.div layout initial={{ width: 0, opacity: 0 }} animate={{ width: 'auto', opacity: 1 }} exit={{ width: 0 }} className="bg-[#22c55e]/20 border border-[#22c55e] text-[#22c55e] font-mono text-xs px-3 py-4 flex items-center whitespace-nowrap overflow-hidden rounded-l">
+                   <div className="flex flex-col items-center">
+                      <span className="font-bold tracking-widest">{scenario.l2.header}</span>
+                   </div>
+                </motion.div>
+             )}
+           </AnimatePresence>
+
+           <AnimatePresence>
+             {step >= 3 && (
+                <motion.div layout initial={{ width: 0, opacity: 0 }} animate={{ width: 'auto', opacity: 1 }} exit={{ width: 0 }} className="bg-[#f59e0b]/20 border-y border-l border-[#f59e0b] text-[#f59e0b] font-mono text-xs px-3 py-4 flex items-center whitespace-nowrap overflow-hidden">
+                   <span className="font-bold tracking-widest">{scenario.l3.label}</span>
+                </motion.div>
+             )}
+           </AnimatePresence>
+
+           <AnimatePresence>
+             {step >= 2 && (
+                <motion.div layout initial={{ width: 0, opacity: 0 }} animate={{ width: 'auto', opacity: 1 }} exit={{ width: 0 }} className="bg-[#06b6d4]/20 border-y border-l border-[#06b6d4] text-[#06b6d4] font-mono text-xs px-3 py-4 flex items-center whitespace-nowrap overflow-hidden">
+                   <span className="font-bold tracking-widest">{scenario.l4.label}</span>
+                </motion.div>
+             )}
+           </AnimatePresence>
+
+           <motion.div layout className={`bg-[#a855f7]/20 border border-[#a855f7] text-[#a855f7] font-mono text-xs px-4 py-4 flex flex-col items-center justify-center whitespace-nowrap z-10 glass-panel shadow-[0_0_15px_rgba(168,85,247,0.3)] ${step < 2 ? 'rounded' : ''} ${step === 2 || step === 3 ? 'rounded-r' : ''}`}>
+               <span className="font-bold tracking-wider">{scenario.app.text}</span>
+               <span className="text-[9px] opacity-80 mt-1 uppercase">{scenario.app.subtext}</span>
+           </motion.div>
+
+           <AnimatePresence>
+             {step >= 4 && (
+                <motion.div layout initial={{ width: 0, opacity: 0 }} animate={{ width: 'auto', opacity: 1 }} exit={{ width: 0 }} className="bg-[#22c55e]/20 border border-[#22c55e] border-l-0 text-[#22c55e] font-mono text-xs px-3 py-4 flex items-center whitespace-nowrap overflow-hidden rounded-r">
+                   <span className="font-bold tracking-widest">{scenario.l2.trailer}</span>
+                </motion.div>
+             )}
+           </AnimatePresence>
+         </>
+      )}
+    </motion.div>
+  );
 
   return (
     <SimulatorLayout
-      title="TCP/IP 4-Layer Stack"
-      subtitle="DoD Model · Theory to Reality"
+      title="TCP/IP 4-Layer Stack Simulator"
+      subtitle="Encapsulation & DoD Model Visualization"
       layerBadge="DoD"
-      layerColor="#0891b2"
+      layerColor="#06b6d4"
       footerControls={footerControls}
     >
-      <div className="h-full flex gap-4 p-4 overflow-hidden">
-        {/* User actions */}
-        <div className="w-44 shrink-0 flex flex-col gap-2">
-          <div className="text-slate-400 uppercase tracking-widest font-bold mb-1" style={{ fontSize: 9 }}>
-            User Task
-          </div>
-          {TASKS.map(task => (
-            <button
-              key={task.id}
-              onClick={() => handleSelect(task)}
-              className="flex items-center gap-3 p-3 rounded-xl border transition-all duration-200 text-left hover:scale-[1.02]"
-              style={{
-                background: selected?.id === task.id ? task.color + "15" : "#141b24",
-                borderColor: selected?.id === task.id ? task.color + "50" : "rgba(255,255,255,0.05)",
-              }}
-            >
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                style={{ background: task.color + "20", color: task.color }}>
-                {task.icon}
-              </div>
-              <div>
-                <div className="font-semibold text-xs text-slate-300">{task.label}</div>
-                <div className="font-mono" style={{ fontSize: 8, color: task.color }}>{task.protocol}</div>
-              </div>
-            </button>
-          ))}
+      <div className="h-full flex p-4 gap-4 overflow-hidden text-slate-400 bg-[#0a0e14]">
+        
+        {/* Left Sidebar: Scenarios */}
+        <div className="w-[280px] shrink-0 glass-panel border border-white/5 bg-[#141b24] p-4 flex flex-col gap-3 rounded-xl z-20">
+           <div className="flex items-center gap-2 uppercase tracking-widest text-[10px] text-slate-500 font-bold mb-2">
+             <Layers size={14} className="text-[#06b6d4]" />
+             <span>Select Scenario</span>
+           </div>
+           
+           {SCENARIOS.map(s => (
+               <button 
+                 key={s.id} 
+                 onClick={() => { setScenario(s); setStep(0); }} 
+                 className={`p-3 text-left border rounded-lg transition-all duration-300 relative overflow-hidden group ${s.id === scenario.id ? 'border-[#06b6d4] bg-[#06b6d4]/10 shadow-[0_0_15px_rgba(6,182,212,0.15)]' : 'border-white/5 hover:border-white/20 hover:bg-white/5'}`}
+               >
+                  {s.id === scenario.id && (
+                    <motion.div layoutId="scenario-highlight" className="absolute left-0 top-0 bottom-0 w-1 bg-[#06b6d4]" />
+                  )}
+                  <div className={`font-bold text-sm ${s.id === scenario.id ? 'text-white' : 'text-slate-300'}`}>{s.name}</div>
+                  <div className="text-[10px] uppercase tracking-wider text-slate-500 font-mono mt-1 group-hover:text-slate-400 transition-colors">{s.desc}</div>
+               </button>
+           ))}
         </div>
 
-        {/* Stack visualization */}
-        <div className="flex-1 flex flex-col min-w-0">
-          <div className="text-slate-400 uppercase tracking-widest font-bold mb-3" style={{ fontSize: 9 }}>
-            TCP/IP 4-Layer Stack
-          </div>
-
-          {selected ? (
-            <div className="flex-1 flex flex-col gap-3">
-              {selected.layers.map((layer, i) => {
-                const isActive = activeLayer === i;
-                const passed = activeLayer > i || activeLayer === -1;
-                return (
-                  <div key={layer.layer}
-                    className="flex-1 rounded-xl border transition-all duration-500 overflow-hidden"
-                    style={{
-                      background: isActive ? layer.color + "15" : "#141b24",
-                      borderColor: isActive ? layer.color + "50" : activeLayer >= i ? layer.color + "25" : "#1e2d3d",
-                      boxShadow: isActive ? `0 0 0 1px ${layer.color}30, 0 0 20px ${layer.color}15` : undefined,
-                    }}
-                  >
-                    <div className="flex items-center justify-between px-4 py-2 border-b border-white/5 h-10"
-                      style={{ background: isActive ? layer.color + "10" : "transparent" }}>
-                      <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-full rounded-full" style={{ background: layer.color }} />
-                        <span className="font-bold text-xs" style={{ color: isActive ? layer.color : "#94a3b8" }}>
-                          {layer.layer}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono px-2 py-0.5 rounded-full border font-bold"
-                          style={{ fontSize: 8, color: layer.color, borderColor: layer.color + "40", background: layer.color + "10" }}>
-                          {layer.protocol}
-                        </span>
-                        <span className="text-slate-600 uppercase tracking-widest" style={{ fontSize: 8 }}>
-                          PDU: {layer.pdu}
-                        </span>
-                      </div>
+        {/* Center Canvas: The Stack */}
+        <div className="flex-[2] flex flex-col gap-3 relative z-10">
+            {DOD_LAYERS.map(layer => (
+                <div 
+                  key={layer.id} 
+                  className={`flex-1 glass-panel border-y border-r border border-white/5 rounded-lg flex items-center justify-center relative overflow-hidden transition-all duration-500 ${step >= layer.id ? 'bg-[#141b24]/80' : 'bg-[#141b24]/30'}`}
+                  style={{ borderLeftWidth: '4px', borderLeftColor: layer.color }}
+                >
+                    <div 
+                      className="absolute top-3 left-4 font-bold text-[10px] tracking-widest uppercase transition-colors" 
+                      style={{ color: step >= layer.id ? layer.color : "rgba(255,255,255,0.2)" }}
+                    >
+                      Layer {5 - layer.id}: {layer.name} {/* DoD numbers: App(4), Trans(3), Int(2), Net(1) */}
                     </div>
-                    <div className="px-4 py-2">
-                      <p className="font-mono text-xs leading-relaxed" style={{ color: isActive ? layer.color + "cc" : "#475569" }}>
-                        {layer.info}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="flex-1 glass-panel rounded-xl border border-white/5 flex items-center justify-center">
-              <div className="text-center text-slate-600">
-                <div className="text-sm mb-2">Select a user task to see the stack in action</div>
-                <div className="text-xs">Each task selects different protocols at each layer</div>
-              </div>
-            </div>
-          )}
-        </div>
+                    
+                    {/* Ambient background glow if active */}
+                    {step === layer.id && (
+                       <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ background: `radial-gradient(circle at center, ${layer.color} 0%, transparent 60%)` }} />
+                    )}
 
-        {/* Right: TCP vs UDP comparison */}
-        <div className="w-56 shrink-0 glass-panel rounded-xl border border-white/5 p-4 flex flex-col">
-          <div className="text-slate-400 uppercase tracking-widest font-bold mb-4" style={{ fontSize: 9 }}>
-            TCP vs UDP
-          </div>
-          {[
-            { prop: "Handshake", tcp: "3-Way SYN", udp: "None" },
-            { prop: "Reliability", tcp: "ACK+Retry", udp: "Best Effort" },
-            { prop: "Ordering", tcp: "Guaranteed", udp: "None" },
-            { prop: "Speed", tcp: "Slower", udp: "Fast" },
-            { prop: "Use Case", tcp: "HTTP,SSH,FTP", udp: "VoIP,DNS,Game" },
-          ].map(row => {
-            const isTCP = selected?.transport === "TCP";
-            const isUDP = selected?.transport === "UDP";
-            return (
-              <div key={row.prop} className="py-2 border-b border-white/3">
-                <div className="text-slate-600 uppercase tracking-widest mb-1" style={{ fontSize: 7 }}>{row.prop}</div>
-                <div className="flex gap-2">
-                  <div className="flex-1 text-center py-0.5 rounded text-xs font-semibold"
-                    style={{
-                      background: isTCP ? "#8b5cf620" : "transparent",
-                      color: isTCP ? "#a78bfa" : "#475569",
-                    }}>
-                    {row.tcp}
-                  </div>
-                  <div className="flex-1 text-center py-0.5 rounded text-xs font-semibold"
-                    style={{
-                      background: isUDP ? "#f9731620" : "transparent",
-                      color: isUDP ? "#fb923c" : "#475569",
-                    }}>
-                    {row.udp}
-                  </div>
+                    {/* The PDU resides in whichever layer matches the current step (step 5 renders in layer 4) */}
+                    {(step === layer.id || (layer.id === 4 && step === 5)) && (
+                        <div className="absolute inset-0 flex items-center justify-center pt-2">
+                           <PDUVisual />
+                        </div>
+                    )}
                 </div>
-              </div>
-            );
-          })}
+            ))}
         </div>
+
+        {/* Right Sidebar: PDU Inspector */}
+        <div className="w-[320px] shrink-0 glass-panel border border-white/5 bg-[#141b24] p-4 flex flex-col h-full overflow-hidden rounded-xl z-20">
+           <div className="uppercase tracking-widest text-[10px] text-slate-500 font-bold mb-4">PDU Inspector</div>
+           
+           <div className="text-lg font-bold font-mono tracking-tight text-white mb-6 bg-black/30 p-3 rounded border border-white/5 shadow-inner">
+              {step === 0 && <span className="text-slate-500">Waiting for data...</span>}
+              {step === 1 && <span className="text-[#a855f7]">PDU: Message / Data</span>}
+              {step === 2 && <span className="text-[#06b6d4]">PDU: {scenario.l4.proto === 'TCP' ? 'Segment' : 'Datagram'}</span>}
+              {step === 3 && <span className="text-[#f59e0b]">PDU: Packet / Datagram</span>}
+              {step === 4 && <span className="text-[#22c55e]">PDU: Frame</span>}
+              {step === 5 && <span className="text-white animate-pulse">TRANSMITTING...</span>}
+           </div>
+
+           <div className="flex flex-col gap-3 overflow-y-auto pr-2 pb-10 custom-scrollbar">
+              <AnimatePresence>
+                  
+                  {/* Outer Layer: Layer 1 Network Access */}
+                  {step >= 4 && (
+                    <motion.div layout initial={{ opacity: 0, y: -20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="p-3 border border-[#22c55e]/30 bg-[#22c55e]/5 rounded-lg flex flex-col gap-1 text-[#22c55e] shadow-[0_0_15px_rgba(34,197,94,0.1)] relative">
+                       <div className="absolute top-0 bottom-0 left-0 w-1 bg-[#22c55e] rounded-l-lg" />
+                       <div className="font-bold text-[10px] tracking-wider uppercase mb-1 pl-2">Network Access Header</div>
+                       <div className="font-mono text-xs pl-2">MAC Src: {scenario.l2.macSrc}</div>
+                       <div className="font-mono text-xs pl-2">MAC Dst: {scenario.l2.macDst}</div>
+                    </motion.div>
+                  )}
+
+                  {/* Inter Outer Layer: Layer 2 Internet */}
+                  {step >= 3 && (
+                    <motion.div layout initial={{ opacity: 0, y: -20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} className={`p-3 border border-[#f59e0b]/30 bg-[#f59e0b]/5 rounded-lg flex flex-col gap-1 text-[#f59e0b] shadow-[0_0_15px_rgba(245,158,11,0.1)] relative ${step >= 4 ? 'ml-4' : ''}`}>
+                       <div className="absolute top-0 bottom-0 left-0 w-1 bg-[#f59e0b] rounded-l-lg" />
+                       <div className="font-bold text-[10px] tracking-wider uppercase mb-1 pl-2">Internet Header</div>
+                       <div className="font-mono text-xs pl-2">IP Src: {scenario.l3.src}</div>
+                       <div className="font-mono text-xs pl-2">IP Dst: {scenario.l3.dst}</div>
+                    </motion.div>
+                  )}
+
+                  {/* Inner nested: Layer 3 Transport */}
+                  {step >= 2 && (
+                    <motion.div layout initial={{ opacity: 0, y: -20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} className={`p-3 border border-[#06b6d4]/30 bg-[#06b6d4]/5 rounded-lg flex flex-col gap-1 text-[#06b6d4] shadow-[0_0_15px_rgba(6,182,212,0.1)] relative ${step >= 3 ? (step >= 4 ? 'ml-8' : 'ml-4') : ''}`}>
+                       <div className="absolute top-0 bottom-0 left-0 w-1 bg-[#06b6d4] rounded-l-lg" />
+                       <div className="font-bold text-[10px] tracking-wider uppercase mb-1 pl-2">Transport Header</div>
+                       <div className="font-mono text-xs pl-2">{scenario.l4.proto} Src Port: {scenario.l4.src}</div>
+                       <div className="font-mono text-xs pl-2">{scenario.l4.proto} Dst Port: {scenario.l4.dst}</div>
+                    </motion.div>
+                  )}
+
+                  {/* Core payload: Layer 4 Application */}
+                  {step >= 1 && (
+                    <motion.div layout initial={{ opacity: 0, y: -20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} className={`p-3 border border-[#a855f7]/30 bg-[#a855f7]/5 rounded-lg flex flex-col gap-1 text-[#a855f7] shadow-[0_0_15px_rgba(168,85,247,0.1)] relative ${step >= 2 ? (step >= 3 ? (step >= 4 ? 'ml-12' : 'ml-8') : 'ml-4') : ''}`}>
+                       <div className="absolute top-0 bottom-0 left-0 w-1 bg-[#a855f7] rounded-l-lg" />
+                       <div className="font-bold text-[10px] tracking-wider uppercase mb-1 pl-2">Application Payload</div>
+                       <div className="font-mono text-xs pl-2 break-words">{scenario.app.subtext}</div>
+                       <div className="font-mono text-[9px] opacity-70 break-all mt-1 pl-2">RAW: {scenario.app.raw}</div>
+                    </motion.div>
+                  )}
+
+               </AnimatePresence>
+
+               {step === 0 && (
+                  <div className="flex flex-col items-center justify-center h-40 text-slate-600">
+                     <Layers size={32} className="mb-2 opacity-50" />
+                     <div className="text-[10px] uppercase tracking-widest">Awaiting Payload</div>
+                  </div>
+               )}
+           </div>
+        </div>
+
       </div>
     </SimulatorLayout>
   );

@@ -1,172 +1,210 @@
 import { useState, useEffect } from "react";
-import { Play, RefreshCw, Wifi, Globe, Terminal, Radio } from "lucide-react";
+import { Globe, Terminal as TerminalIcon, ShieldAlert, Lock } from "lucide-react";
 import SimulatorLayout, { FooterControl } from "../../components/SimulatorLayout";
 
-interface Port { port: number; protocol: string; service: string; color: string; icon: React.ReactNode; description: string; }
-interface Arrival { id: number; port: number; label: string; progress: number; accepted: boolean; }
+type PortType = "HTTP" | "HTTPS" | "SSH" | "Telnet";
 
-const PORTS: Port[] = [
-  { port: 80, protocol: "HTTP", service: "Web Server", color: "#06b6d4", icon: <Globe size={14} />, description: "Hypertext Transfer Protocol — web traffic" },
-  { port: 22, protocol: "SSH", service: "Secure Shell", color: "#14b8a6", icon: <Terminal size={14} />, description: "Encrypted remote terminal access" },
-  { port: 1883, protocol: "MQTT", service: "IoT Broker", color: "#f59e0b", icon: <Wifi size={14} />, description: "Message Queue for IoT sensors" },
-  { port: 443, protocol: "HTTPS", service: "Secure Web", color: "#a855f7", icon: <Globe size={14} />, description: "Encrypted web traffic via TLS" },
-  { port: 8883, protocol: "MQTT+TLS", service: "IoT Secure", color: "#10b981", icon: <Radio size={14} />, description: "Encrypted IoT traffic" },
-];
+interface Packet {
+  id: number;
+  type: PortType;
+  port: number;
+  phase: number; // 0: spawn, 1: travel, 2: enter/reject
+}
 
 export default function Layer4Ports() {
-  const [running, setRunning] = useState(false);
-  const [arrivals, setArrivals] = useState<Arrival[]>([]);
-  const [counts, setCounts] = useState<Record<number, number>>({});
-  const [totalPackets, setTotalPackets] = useState(0);
+  const [packets, setPackets] = useState<Packet[]>([]);
 
-  useEffect(() => {
-    if (!running) return;
-    const spawn = setInterval(() => {
-      const p = PORTS[Math.floor(Math.random() * PORTS.length)];
-      const id = Date.now() + Math.random();
-      setArrivals(prev => [...prev.slice(-12), { id, port: p.port, label: p.protocol, progress: 0, accepted: true }]);
-      setTotalPackets(t => t + 1);
-      setCounts(c => ({ ...c, [p.port]: (c[p.port] ?? 0) + 1 }));
-    }, 700);
+  const handleSend = (type: PortType, port: number) => {
+    const id = Date.now();
+    setPackets(prev => [...prev, { id, type, port, phase: 0 }]);
 
-    const move = setInterval(() => {
-      setArrivals(prev => prev.map(a => ({ ...a, progress: Math.min(a.progress + 0.05, 1) })));
+    setTimeout(() => {
+      setPackets(prev => prev.map(p => p.id === id ? { ...p, phase: 1 } : p));
     }, 50);
 
-    return () => { clearInterval(spawn); clearInterval(move); };
-  }, [running]);
+    setTimeout(() => {
+      setPackets(prev => prev.map(p => p.id === id ? { ...p, phase: 2 } : p));
+    }, 1500);
 
-  const reset = () => { setRunning(false); setArrivals([]); setCounts({}); setTotalPackets(0); };
+    // Cleanup after animation completes
+    setTimeout(() => {
+      setPackets(prev => prev.filter(p => p.id !== id));
+    }, 3500);
+  };
 
   const footerControls: FooterControl[] = [
+    { type: "spacer" },
     {
-      key: "play", type: "button",
-      label: running ? "Pause" : "Start Traffic",
-      variant: running ? "secondary" : "teal",
-      icon: <Play size={12} />,
-      onClick: () => setRunning(r => !r),
+      key: "http", type: "button", label: "HTTP (Port 80)", variant: "cyan",
+      onClick: () => handleSend("HTTP", 80),
     },
-    { key: "sp", type: "spacer" },
-    { key: "total", type: "stat", stat: { label: "Total Packets", value: String(totalPackets), color: "#06b6d4" } },
-    { key: "ports-open", type: "stat", stat: { label: "Open Ports", value: String(PORTS.length), color: "#14b8a6" } },
-    { key: "reset", type: "button", label: "Reset", variant: "danger", icon: <RefreshCw size={12} />, onClick: reset },
+    {
+      key: "https", type: "button", label: "HTTPS (Port 443)", variant: "teal",
+      onClick: () => handleSend("HTTPS", 443),
+    },
+    {
+      key: "ssh", type: "button", label: "SSH (Port 22)", variant: "primary", // Uses primary as purple-ish or fallback
+      onClick: () => handleSend("SSH", 22),
+    },
+    {
+      key: "telnet", type: "button", label: "Telnet (Port 23)", variant: "danger",
+      onClick: () => handleSend("Telnet", 23),
+    },
+    { type: "spacer" },
   ];
 
   return (
     <SimulatorLayout
-      title="Layer 4 Port Multiplexing"
-      subtitle="Single IP · Multiple Services · IoT Focus"
+      title="Port Multiplexing Simulator"
+      subtitle="Routing internal traffic by port numbers"
       layerBadge="L4"
-      layerColor="#10b981"
+      layerColor="#06b6d4"
       footerControls={footerControls}
+      sidebar={
+        <div className="p-6 flex flex-col h-full bg-[#0d1520]">
+          <div className="bg-[#141b24] border border-white/10 p-4 rounded-lg shadow-sm w-full">
+            <h3 className="text-xs font-bold text-slate-300 uppercase tracking-widest mb-3 pb-2 border-b border-white/5">What is Multiplexing?</h3>
+            <p className="text-xs text-slate-400 leading-relaxed mb-3">
+              Multiplexing allows one IP address to handle multiple apps simultaneously.
+            </p>
+            <p className="text-xs text-slate-400 leading-relaxed mb-3">
+              The 'Port' acts like an apartment number at a single building address (IP). 
+            </p>
+            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded">
+              <p className="text-xs text-red-400 leading-relaxed">
+                 Port 23 is closed, so the server rejects it.
+              </p>
+            </div>
+          </div>
+        </div>
+      }
     >
-      <div className="h-full flex gap-4 p-4 overflow-hidden">
-        {/* Server SVG visualization */}
-        <div className="flex-1 glass-panel rounded-xl border border-white/5 relative overflow-hidden canvas-grid">
-          <svg className="absolute inset-0 w-full h-full" viewBox="0 0 720 420" preserveAspectRatio="xMidYMid meet">
-            <defs>
-              <filter id="glow-green">
-                <feGaussianBlur stdDeviation="4" result="blur" />
-                <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-              </filter>
-            </defs>
-
-            {/* Server block */}
-            <rect x={480} y={60} width={160} height={300} rx={12}
-              fill="#141b24" stroke="#10b981" strokeWidth={2} strokeOpacity={0.4} />
-            <text x={560} y={48} textAnchor="middle" fill="#94a3b8" fontSize={10} fontFamily="monospace">
+      <div className="h-full flex flex-col p-6 overflow-hidden">
+        {/* Metrics Header */}
+        <div className="grid grid-cols-2 gap-4 mb-4 bg-[#141b24] border border-white/5 rounded-lg p-4 shadow-lg shrink-0">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Server IP</span>
+            <span className="text-sm font-mono font-bold text-cyan-400">
               192.168.1.100
-            </text>
-            <text x={560} y={35} textAnchor="middle" fill="#10b981" fontSize={12} fontWeight="bold">
-              SERVER
-            </text>
-
-            {/* Port receivers */}
-            {PORTS.map((p, i) => {
-              const y = 90 + i * 52;
-              const count = counts[p.port] ?? 0;
-              return (
-                <g key={p.port}>
-                  <rect x={486} y={y} width={148} height={38} rx={6}
-                    fill={count > 0 ? p.color + "15" : "#0c1219"}
-                    stroke={p.color} strokeWidth={1.5} strokeOpacity={count > 0 ? 0.6 : 0.25}
-                  />
-                  <text x={498} y={y + 13} fill={p.color} fontSize={8} fontFamily="monospace" fontWeight="bold">
-                    :{p.port}
-                  </text>
-                  <text x={498} y={y + 25} fill="#94a3b8" fontSize={8}>{p.service}</text>
-                  <text x={622} y={y + 13} textAnchor="end" fill={count > 0 ? p.color : "#475569"} fontSize={9} fontFamily="monospace" fontWeight="bold">
-                    {count}
-                  </text>
-                </g>
-              );
-            })}
-
-            {/* Incoming packets */}
-            {arrivals.filter(a => a.progress < 1).map(a => {
-              const port = PORTS.find(p => p.port === a.port)!;
-              const portIdx = PORTS.findIndex(p => p.port === a.port);
-              const targetY = 109 + portIdx * 52;
-              const startX = 80;
-              const endX = 480;
-              const x = startX + (endX - startX) * a.progress;
-              const y = 200 - (200 - targetY) * a.progress;
-
-              return (
-                <g key={a.id}>
-                  <rect x={x - 22} y={y - 10} width={44} height={20} rx={4}
-                    fill={port.color + "20"} stroke={port.color} strokeWidth={1}
-                  />
-                  <text x={x} y={y + 3} textAnchor="middle" fill={port.color}
-                    fontSize={8} fontFamily="monospace" fontWeight="bold">
-                    :{a.port}
-                  </text>
-                </g>
-              );
-            })}
-
-            {/* Internet cloud */}
-            <ellipse cx={100} cy={200} rx={70} ry={50} fill="#0c1219" stroke="#1e3148" strokeWidth={2} />
-            <text x={100} y={195} textAnchor="middle" fill="#94a3b8" fontSize={10} fontWeight="bold">Internet</text>
-            <text x={100} y={210} textAnchor="middle" fill="#475569" fontSize={8}>Inbound Traffic</text>
-
-            {/* IP label */}
-            <text x={290} y={180} textAnchor="middle" fill="#06b6d4" fontSize={9} fontFamily="monospace">
-              Dest IP: 192.168.1.100
-            </text>
-            <text x={290} y={196} textAnchor="middle" fill="#8b5cf6" fontSize={9} fontFamily="monospace">
-              Port # determines service
-            </text>
-          </svg>
+            </span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Status</span>
+            <span className="text-sm font-mono font-bold text-emerald-400">
+              LISTENING ON 80, 443, 22
+            </span>
+          </div>
         </div>
 
-        {/* Right panel */}
-        <div className="w-64 shrink-0 flex flex-col gap-4">
-          <div className="glass-panel rounded-xl border border-white/5 p-4 flex-1">
-            <div className="text-slate-400 uppercase tracking-widest font-bold mb-4" style={{ fontSize: 9 }}>
-              Active Ports
+        {/* Canvas */}
+        <div className="flex-1 bg-[#0c1219] rounded-xl border border-white/5 relative overflow-hidden flex items-center shadow-[inset_0_0_50px_rgba(0,0,0,0.5)]">
+          <div className="relative w-full h-full min-h-[400px]">
+            
+            {/* Server Box (Right side) */}
+            <div className="absolute right-12 top-1/2 -translate-y-1/2 w-80 bg-[#141b24] border-2 border-slate-700/50 rounded-xl p-6 shadow-[0_0_40px_rgba(0,0,0,0.5)] z-10 flex flex-col justify-center">
+              <div className="flex flex-col items-center mb-6">
+                <div className="w-16 h-16 bg-[#1a2430] rounded-lg border border-slate-600 flex items-center justify-center shadow-inner mb-3">
+                  <TerminalIcon size={32} className="text-slate-400" />
+                </div>
+                <h2 className="text-sm font-bold text-white tracking-widest">SERVER</h2>
+                <div className="text-xs font-mono text-cyan-400 mt-1 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">192.168.1.100</div>
+              </div>
+
+              <div className="space-y-4">
+                {/* 80 */}
+                <div className="relative p-3 bg-[#1a2430] border border-cyan-500/30 rounded-lg flex items-center gap-4 transition-all duration-300">
+                  <div className="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center shrink-0">
+                    <Globe size={20} className="text-cyan-400" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-cyan-400 uppercase tracking-widest">HTTP Server</div>
+                    <div className="text-[10px] font-mono text-slate-500 uppercase mt-1">Listening on Port :80</div>
+                  </div>
+                  {/* Indicator glow when active */}
+                  {packets.some(p => p.port === 80 && p.phase === 2) && (
+                    <div className="absolute inset-0 border-2 border-cyan-400 rounded-lg shadow-[0_0_20px_rgba(6,182,212,0.5)] animate-pulse pointer-events-none" />
+                  )}
+                </div>
+
+                {/* 443 */}
+                <div className="relative p-3 bg-[#1a2430] border border-teal-500/30 rounded-lg flex items-center gap-4 transition-all duration-300">
+                  <div className="w-10 h-10 rounded-full bg-teal-500/20 flex items-center justify-center shrink-0">
+                    <Lock size={20} className="text-teal-400" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-teal-400 uppercase tracking-widest">HTTPS Server</div>
+                    <div className="text-[10px] font-mono text-slate-500 uppercase mt-1">Listening on Port :443</div>
+                  </div>
+                  {packets.some(p => p.port === 443 && p.phase === 2) && (
+                    <div className="absolute inset-0 border-2 border-teal-400 rounded-lg shadow-[0_0_20px_rgba(20,184,166,0.5)] animate-pulse pointer-events-none" />
+                  )}
+                </div>
+
+                {/* 22 */}
+                <div className="relative p-3 bg-[#1a2430] border border-purple-500/30 rounded-lg flex items-center gap-4 transition-all duration-300">
+                  <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center shrink-0">
+                    <TerminalIcon size={20} className="text-purple-400" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-purple-400 uppercase tracking-widest">SSH Service</div>
+                    <div className="text-[10px] font-mono text-slate-500 uppercase mt-1">Listening on Port :22</div>
+                  </div>
+                  {packets.some(p => p.port === 22 && p.phase === 2) && (
+                    <div className="absolute inset-0 border-2 border-purple-400 rounded-lg shadow-[0_0_20px_rgba(168,85,247,0.5)] animate-pulse pointer-events-none" />
+                  )}
+                </div>
+              </div>
             </div>
-            {PORTS.map(p => {
-              const count = counts[p.port] ?? 0;
+
+            {/* Packets */}
+            {packets.map(p => {
+              let targetY = "50%";
+              let targetX = "calc(100% - 380px)"; // hits the server box outer edge
+              let colorClasses = "bg-red-500/20 border-red-400 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]";
+              
+              if (p.port === 80) {
+                targetY = "calc(50% - 85px)";
+                targetX = "calc(100% - 180px)"; // slides inwards to HTTP container
+                colorClasses = "bg-cyan-500/20 border-cyan-400 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.5)]";
+              } else if (p.port === 443) {
+                targetY = "calc(50%)"; // middle
+                targetX = "calc(100% - 180px)";
+                colorClasses = "bg-teal-500/20 border-teal-400 text-teal-400 shadow-[0_0_15px_rgba(20,184,166,0.5)]";
+              } else if (p.port === 22) {
+                targetY = "calc(50% + 85px)"; // bottom
+                targetX = "calc(100% - 180px)";
+                colorClasses = "bg-purple-500/20 border-purple-400 text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.5)]";
+              } else if (p.port === 23) {
+                targetY = "50%"; // hits the server shell dead center
+                targetX = "calc(100% - 350px)";
+              }
+
               return (
-                <div key={p.port} className="mb-3 rounded-lg p-2.5 border transition-all duration-300"
+                <div
+                  key={p.id}
+                  className={`absolute left-0 top-1/2 -translate-y-1/2 w-12 h-12 rounded flex items-center justify-center font-mono font-bold text-xs border-2 transition-all duration-[1500ms] ease-in-out z-20 backdrop-blur-md
+                    ${colorClasses}
+                    ${p.phase === 0 ? "opacity-0 translate-x-12 scale-50" : ""}
+                    ${p.phase === 2 && p.port === 23 ? "opacity-0 scale-150 blur-sm duration-500 delay-500" : ""}
+                    ${p.phase === 2 && p.port !== 23 ? "opacity-0 scale-50 duration-500" : ""}
+                  `}
                   style={{
-                    background: count > 0 ? p.color + "10" : "#0a0e14",
-                    borderColor: count > 0 ? p.color + "35" : "#1e2d3d",
+                    left: p.phase >= 1 ? targetX : "48px",
+                    top: p.phase >= 1 ? targetY : "50%",
                   }}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-1.5" style={{ color: p.color }}>
-                      {p.icon}
-                      <span className="font-mono font-bold" style={{ fontSize: 11 }}>:{p.port}</span>
-                      <span className="uppercase tracking-widest" style={{ fontSize: 8 }}>{p.protocol}</span>
+                  :{p.port}
+                  
+                  {/* Reject Icon */}
+                  {p.phase === 2 && p.port === 23 && (
+                    <div className="absolute inset-0 flex items-center justify-center text-red-500">
+                      <ShieldAlert size={32} className="drop-shadow-[0_0_10px_rgba(239,68,68,1)]" />
                     </div>
-                    <span className="font-mono font-bold text-xs" style={{ color: p.color }}>{count}</span>
-                  </div>
-                  <div className="text-slate-500" style={{ fontSize: 9 }}>{p.description}</div>
+                  )}
                 </div>
               );
             })}
+
           </div>
         </div>
       </div>

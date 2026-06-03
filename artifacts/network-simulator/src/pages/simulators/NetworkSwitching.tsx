@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Play, RefreshCw, Info } from "lucide-react";
+import { Play, RefreshCw, Info, Monitor, Server, Wifi } from "lucide-react";
 import SimulatorLayout, { FooterControl } from "../../components/SimulatorLayout";
 
 type Mode = "circuit" | "packet";
@@ -37,6 +37,7 @@ export default function NetworkSwitching() {
   const [circuitProgress, setCircuitProgress] = useState(0);
   const [drops, setDrops] = useState(0);
   const [delivered, setDelivered] = useState(0);
+  const [simSpeed, setSimSpeed] = useState<number>(1);
 
   useEffect(() => {
     if (!running) return;
@@ -48,7 +49,7 @@ export default function NetworkSwitching() {
             setDelivered(d => d + 1);
             return 0;
           }
-          return p + 0.02;
+          return p + (0.02 * simSpeed);
         });
       }, 50);
       return () => clearInterval(interval);
@@ -67,12 +68,12 @@ export default function NetworkSwitching() {
           color: PACKET_COLORS[Math.floor(Math.random() * PACKET_COLORS.length)],
           active: true,
         }]);
-      }, 800);
+      }, 800 / simSpeed);
 
       const moveInterval = setInterval(() => {
         setPackets(prev => prev.map(p => {
           if (!p.active) return p;
-          const newProg = p.progress + 0.04;
+          const newProg = p.progress + (0.04 * simSpeed);
           if (newProg >= 1) {
             setDelivered(d => d + 1);
             return { ...p, progress: 1, active: false };
@@ -86,7 +87,7 @@ export default function NetworkSwitching() {
         clearInterval(moveInterval);
       };
     }
-  }, [running, mode]);
+  }, [running, mode, simSpeed]);
 
   const simulateFailure = () => {
     if (mode === "circuit") {
@@ -94,7 +95,26 @@ export default function NetworkSwitching() {
       setCircuitProgress(0);
       setDrops(d => d + 1);
     } else {
-      setDrops(d => d + Math.floor(Math.random() * 2));
+      const activePackets = packets.filter(p => p.active);
+      if (activePackets.length === 0) return;
+      
+      let droppedCount = 0;
+      const idsToDrop = new Set<number>();
+      
+      activePackets.forEach(p => {
+        if (Math.random() > 0.5) {
+          idsToDrop.add(p.id);
+          droppedCount++;
+        }
+      });
+      
+      if (droppedCount === 0) {
+        idsToDrop.add(activePackets[0].id);
+        droppedCount = 1;
+      }
+      
+      setPackets(prev => prev.map(p => idsToDrop.has(p.id) ? { ...p, active: false } : p));
+      setDrops(d => d + droppedCount);
     }
   };
 
@@ -127,6 +147,11 @@ export default function NetworkSwitching() {
       onClick: simulateFailure,
     },
     { key: "sp", type: "spacer" },
+    {
+      key: "simSpeed", type: "slider",
+      label: "Sim Speed", value: simSpeed, min: 0.5, max: 3, step: 0.1,
+      onChange: (val) => setSimSpeed(Number(val))
+    },
     {
       key: "del", type: "stat",
       stat: { label: "Delivered", value: String(delivered), color: "#14b8a6" },
@@ -211,18 +236,28 @@ export default function NetworkSwitching() {
             {NODES.map(node => {
               const isEndpoint = node.id === 0 || node.id === 5;
               const onPath = mode === "circuit" && circuitPath.includes(node.id);
+              const Icon = node.id === 0 ? Monitor : node.id === 5 ? Server : Wifi;
+              const iconSize = isEndpoint ? 20 : 16;
+              const iconColor = isEndpoint ? "#f59e0b" : (onPath ? "#f59e0b" : "#94a3b8");
               return (
                 <g key={node.id} transform={`translate(${node.x},${node.y})`}>
-                  <circle r={isEndpoint ? 22 : 16}
+                  <circle r={isEndpoint ? 24 : 18}
                     fill={onPath ? "#1a0f00" : "#0c1219"}
                     stroke={isEndpoint ? "#f59e0b" : onPath ? "#f59e0b" : "#1e3148"}
                     strokeWidth={onPath || isEndpoint ? 2 : 1.5}
                     filter={onPath || isEndpoint ? "url(#glow-amber)" : undefined}
                   />
-                  <text textAnchor="middle" y={4} fill={isEndpoint ? "#f59e0b" : "#94a3b8"}
-                    fontSize={isEndpoint ? 13 : 10} fontWeight="bold" fontFamily="monospace">
-                    {node.label}
-                  </text>
+                  <g transform={`translate(-${iconSize/2}, -${iconSize/2})`}>
+                    <Icon size={iconSize} color={iconColor} strokeWidth={2} />
+                  </g>
+                  {isEndpoint && (
+                    <g transform={`translate(0, 35)`}>
+                      <rect x={-35} y={-10} width={70} height={20} rx={10} fill="#0c1219" stroke={isEndpoint ? "#f59e0b" : "#1e3148"} strokeWidth={1.5} />
+                      <text textAnchor="middle" y={4} fill="#f59e0b" fontSize={9} fontWeight="bold" letterSpacing="1" fontFamily="monospace">
+                        {node.id === 0 ? "SENDER" : "RECEIVER"}
+                      </text>
+                    </g>
+                  )}
                 </g>
               );
             })}

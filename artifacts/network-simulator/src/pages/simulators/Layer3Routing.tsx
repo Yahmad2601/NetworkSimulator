@@ -1,344 +1,224 @@
-import { useState, useEffect, useRef } from "react";
-import { Play, RefreshCw, FastForward, Info } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { SlidersVertical, Network, Usb, Router, Play } from "lucide-react";
 import SimulatorLayout, { FooterControl } from "../../components/SimulatorLayout";
 
-interface RouteEntry {
-  network: string;
-  mask: number;
-  nextHop: string;
-  interface: string;
-  metric: number;
-}
-
-const ROUTING_TABLE: RouteEntry[] = [
-  { network: "10.0.1.0", mask: 24, nextHop: "10.0.0.2", interface: "eth0", metric: 1 },
-  { network: "10.0.2.0", mask: 24, nextHop: "10.0.0.3", interface: "eth1", metric: 2 },
-  { network: "192.168.0.0", mask: 16, nextHop: "172.16.0.1", interface: "eth2", metric: 5 },
-  { network: "10.0.0.0", mask: 8, nextHop: "10.255.0.1", interface: "eth3", metric: 10 },
-  { network: "0.0.0.0", mask: 0, nextHop: "203.0.113.1", interface: "wan0", metric: 100 },
-];
-
-const PACKETS = [
-  { dest: "10.0.1.42", src: "10.0.2.1", data: "HTTP GET /index.html" },
-  { dest: "192.168.5.100", src: "10.0.1.5", data: "SSH Connect" },
-  { dest: "8.8.8.8", src: "10.0.1.10", data: "DNS Query: google.com" },
-  { dest: "10.0.2.200", src: "10.0.1.3", data: "MQTT Publish topic/sensors" },
-];
-
-type Step = "idle" | "receive" | "strip-l2" | "read-ip" | "lookup" | "matched" | "decrement-ttl" | "re-encapsulate" | "forward";
-
-const STEP_LABELS: Record<Step, string> = {
-  idle: "Waiting for packet...",
-  receive: "Packet received on interface",
-  "strip-l2": "Stripping Layer 2 MAC header",
-  "read-ip": "Reading IP destination address",
-  lookup: "Running Longest Prefix Match (LPM) on routing table",
-  matched: "Route matched! Most specific prefix wins",
-  "decrement-ttl": "Decrementing TTL (Time to Live)",
-  "re-encapsulate": "Re-encapsulating with new Layer 2 header",
-  forward: "Forwarding packet to next hop",
-};
-
 export default function Layer3Routing() {
-  const [step, setStep] = useState<Step>("idle");
-  const [packetIdx, setPacketIdx] = useState(0);
-  const [matchedRoute, setMatchedRoute] = useState<RouteEntry | null>(null);
-  const [ttl, setTtl] = useState(64);
-  const [autoPlay, setAutoPlay] = useState(false);
-  const [speed, setSpeed] = useState<"normal" | "fast">("normal");
-  const intervalRef = useRef<ReturnType<typeof setInterval>>(null);
+  const [phase, setPhase] = useState<"IDLE" | "INGRESS" | "ROUTING" | "EGRESS">("IDLE");
+  const [destIp, setDestIp] = useState("10.1.2.55");
+  const [ttl, setTtl] = useState<number | null>(null);
 
-  const STEPS: Step[] = ["receive", "strip-l2", "read-ip", "lookup", "matched", "decrement-ttl", "re-encapsulate", "forward"];
+  const getPortForIp = (ip: string) => {
+    if (ip.startsWith("10.1.2.")) return 1;
+    if (ip.startsWith("10.1.")) return 2;
+    return 3;
+  };
 
-  const packet = PACKETS[packetIdx];
+  const targetPort = getPortForIp(destIp);
 
-  function findRoute(dest: string): RouteEntry {
-    const parts = dest.split(".").map(Number);
-    let best: RouteEntry = ROUTING_TABLE[ROUTING_TABLE.length - 1];
-    for (const route of ROUTING_TABLE) {
-      const routeParts = route.network.split(".").map(Number);
-      const maskBits = route.mask;
-      let match = true;
-      for (let i = 0; i < 4; i++) {
-        const shift = Math.max(0, 8 - Math.max(0, maskBits - i * 8));
-        const m = 0xff & (0xff << shift);
-        if ((parts[i] & m) !== (routeParts[i] & m)) { match = false; break; }
-      }
-      if (match && route.mask >= best.mask) best = route;
-    }
-    return best;
-  }
-
-  const advanceStep = () => {
-    setStep(prev => {
-      const idx = STEPS.indexOf(prev as any);
-      if (prev === "idle") {
-        setTtl(64);
-        setMatchedRoute(null);
-        return "receive";
-      }
-      if (prev === "lookup") {
-        const route = findRoute(packet.dest);
-        setMatchedRoute(route);
-        return "matched";
-      }
-      if (prev === "decrement-ttl") {
-        setTtl(t => t - 1);
-      }
-      if (prev === "forward") {
-        return "idle";
-      }
-      return STEPS[idx + 1] ?? "forward";
-    });
+  const handleSend = () => {
+    if (phase !== "IDLE") return;
+    setPhase("INGRESS");
+    setTtl(64);
   };
 
   useEffect(() => {
-    if (autoPlay) {
-      const delay = speed === "fast" ? 600 : 1400;
-      intervalRef.current = setInterval(advanceStep, delay);
+    if (phase === "INGRESS") {
+      const timer = setTimeout(() => setPhase("ROUTING"), 1000);
+      return () => clearTimeout(timer);
+    } else if (phase === "ROUTING") {
+      const timer = setTimeout(() => {
+        setPhase("EGRESS");
+        setTtl(63);
+      }, 1500);
+      return () => clearTimeout(timer);
+    } else if (phase === "EGRESS") {
+      const timer = setTimeout(() => setPhase("IDLE"), 1500);
+      return () => clearTimeout(timer);
     }
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [autoPlay, speed, packetIdx]);
+    return undefined;
+  }, [phase]);
 
-  const reset = () => {
-    setStep("idle");
-    setMatchedRoute(null);
-    setTtl(64);
-    setAutoPlay(false);
+  // Using a 800x500 coordinate system centered in the canvas
+  const routerPos = { x: 400, y: 250 };
+  const port0Pos = { x: 100, y: 350 };
+  const port1Pos = { x: 700, y: 100 };
+  const port2Pos = { x: 700, y: 250 };
+  const port3Pos = { x: 700, y: 400 };
+
+  const getPacketPos = () => {
+    if (phase === "IDLE") return port0Pos;
+    if (phase === "INGRESS") return routerPos;
+    if (phase === "ROUTING") return routerPos;
+    if (phase === "EGRESS") {
+      if (targetPort === 1) return port1Pos;
+      if (targetPort === 2) return port2Pos;
+      return port3Pos;
+    }
+    return port0Pos;
   };
 
-  const nextPacket = () => {
-    setPacketIdx(i => (i + 1) % PACKETS.length);
-    reset();
+  const pPos = getPacketPos();
+
+  const getStatusText = () => {
+    if (phase === "IDLE") return "Packet successfully routed. Ready for next input.";
+    if (phase === "INGRESS") return "Receiving packet on Port 0...";
+    if (phase === "ROUTING") return "Looking up route in table...";
+    if (phase === "EGRESS") return `Forwarding packet to Port ${targetPort}...`;
+    return "";
   };
+
+  const routingTable = [
+    { prefix: "10.1.2.0/24", port: 1 },
+    { prefix: "10.1.0.0/16", port: 2 },
+    { prefix: "0.0.0.0/0", port: 3 }
+  ];
 
   const footerControls: FooterControl[] = [
     {
-      key: "play", type: "button", label: autoPlay ? "Pause" : "Auto Play",
-      variant: autoPlay ? "cyan" : "teal",
+      key: "ip-select",
+      type: "segmented",
+      options: ["10.1.2.55", "10.1.9.99", "8.8.8.8"],
+      value: destIp,
+      onChange: (val) => {
+        if (phase === "IDLE") setDestIp(String(val));
+      }
+    },
+    {
+      key: "send",
+      type: "button",
+      label: phase === "IDLE" ? "Send Packet" : "Routing...",
+      variant: phase === "IDLE" ? "cyan" : "secondary",
       icon: <Play size={12} />,
-      onClick: () => setAutoPlay(a => !a),
+      onClick: handleSend,
+      disabled: phase !== "IDLE"
+    },
+    { key: "sp", type: "spacer" },
+    {
+      key: "phase",
+      type: "stat",
+      stat: { label: "Phase", value: phase, color: "#06b6d4" }
     },
     {
-      key: "step", type: "button", label: "Step",
-      variant: "secondary",
-      icon: <FastForward size={12} />,
-      disabled: autoPlay,
-      onClick: advanceStep,
-    },
-    {
-      key: "speed", type: "segmented",
-      options: ["Normal", "Fast"],
-      value: speed === "normal" ? "Normal" : "Fast",
-      onChange: v => setSpeed(v === "Fast" ? "fast" : "normal"),
-    },
-    { key: "div1", type: "spacer" },
-    {
-      key: "pkt", type: "stat",
-      stat: { label: "Packet", value: `${packetIdx + 1} / ${PACKETS.length}`, color: "#8b5cf6" },
-    },
-    {
-      key: "ttl-stat", type: "stat",
-      stat: { label: "TTL", value: String(ttl), color: ttl < 20 ? "#ef4444" : "#06b6d4" },
-    },
-    {
-      key: "next-pkt", type: "button", label: "Next Packet",
-      variant: "secondary",
-      onClick: nextPacket,
-    },
-    {
-      key: "reset", type: "button", label: "Reset",
-      variant: "danger",
-      icon: <RefreshCw size={12} />,
-      onClick: reset,
-    },
+      key: "ttl",
+      type: "stat",
+      stat: { label: "TTL", value: ttl === null ? "---" : String(ttl), color: "#f59e0b" }
+    }
   ];
-
-  const stepIdx = STEPS.indexOf(step as any);
 
   return (
     <SimulatorLayout
       title="Layer 3 Routing Simulator"
-      subtitle="Network Layer · OSI Model"
+      subtitle={getStatusText()}
       layerBadge="L3"
-      layerColor="#8b5cf6"
+      layerColor="#0ea5e9"
       footerControls={footerControls}
     >
-      <div className="h-full flex gap-4 p-4 overflow-hidden">
-        {/* Left: Packet Journey */}
-        <div className="flex-1 flex flex-col gap-4 min-w-0">
-          {/* Packet info */}
-          <div className="glass-panel rounded-xl border border-white/5 p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-slate-400 uppercase tracking-widest font-bold" style={{ fontSize: 9 }}>
-                Current Packet
-              </span>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <div className="text-slate-600 uppercase tracking-widest mb-1" style={{ fontSize: 8 }}>Source IP</div>
-                <div className="font-mono text-cyan-400 font-bold text-xs">{packet.src}</div>
-              </div>
-              <div>
-                <div className="text-slate-600 uppercase tracking-widest mb-1" style={{ fontSize: 8 }}>Destination IP</div>
-                <div className="font-mono text-purple-400 font-bold text-xs">{packet.dest}</div>
-              </div>
-              <div>
-                <div className="text-slate-600 uppercase tracking-widest mb-1" style={{ fontSize: 8 }}>Payload</div>
-                <div className="font-mono text-slate-400 text-xs truncate">{packet.data}</div>
-              </div>
-            </div>
+      <div className="h-full flex gap-4 p-4 overflow-hidden relative">
+        {/* Routing Table Overlay (Absolutely positioned over the centering container) */}
+        <div className="absolute left-6 top-6 bg-[#0c1219]/90 backdrop-blur-md border border-white/10 rounded-lg shadow-sm w-64 z-30">
+          <div className="px-4 py-2 border-b border-white/5 bg-white/5 rounded-t-lg">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Routing Table</span>
           </div>
-
-          {/* Step visualization */}
-          <div className="flex-1 glass-panel rounded-xl border border-white/5 p-4 flex flex-col">
-            <div className="text-slate-400 uppercase tracking-widest font-bold mb-4" style={{ fontSize: 9 }}>
-              Processing Pipeline
-            </div>
-
-            {/* Layer stack visual */}
-            <div className="flex-1 flex flex-col justify-center gap-2">
-              {[
-                { key: "receive", label: "RECEIVE", sublabel: "Interface ingress", layers: ["L2 Header", "IP Header", "Payload"] },
-                { key: "strip-l2", label: "STRIP L2", sublabel: "Remove MAC frame", layers: ["IP Header", "Payload"] },
-                { key: "read-ip", label: "READ IP", sublabel: "Parse destination", layers: ["IP Header", "Payload"], highlight: "IP" },
-                { key: "lookup", label: "LPM LOOKUP", sublabel: "Match routing table", layers: ["IP Header", "Payload"] },
-                { key: "matched", label: "ROUTE MATCHED", sublabel: matchedRoute ? `/${matchedRoute.mask} via ${matchedRoute.nextHop}` : "Awaiting match", layers: ["IP Header", "Payload"] },
-                { key: "decrement-ttl", label: "TTL -1", sublabel: `TTL: 64 → ${ttl}`, layers: ["IP Header (TTL-1)", "Payload"] },
-                { key: "re-encapsulate", label: "RE-ENCAPSULATE", sublabel: "Add new L2 header", layers: ["New L2 Header", "IP Header", "Payload"] },
-                { key: "forward", label: "FORWARD", sublabel: matchedRoute ? `Out via ${matchedRoute.interface}` : "Out to next hop", layers: ["L2 Header", "IP Header", "Payload"] },
-              ].map((s, i) => {
-                const isActive = step === s.key;
-                const isDone = stepIdx > i && step !== "idle";
-                const color = isActive ? "#8b5cf6" : isDone ? "#14b8a6" : "#1e2d3d";
-
-                return (
-                  <div key={s.key} className="flex items-center gap-3">
-                    {/* Step indicator */}
-                    <div className="flex flex-col items-center shrink-0" style={{ width: 20 }}>
-                      <div
-                        className="w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all duration-300"
-                        style={{
-                          borderColor: color,
-                          background: isActive || isDone ? color + "30" : "transparent",
-                        }}
-                      >
-                        {isDone && <div className="w-1.5 h-1.5 rounded-full" style={{ background: "#14b8a6" }} />}
-                        {isActive && <div className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />}
-                      </div>
-                      {i < 7 && <div className="w-px h-3 mt-0.5" style={{ background: color + "40" }} />}
-                    </div>
-
-                    {/* Content */}
-                    <div
-                      className="flex-1 flex items-center justify-between rounded-lg px-3 py-2 border transition-all duration-300"
-                      style={{
-                        background: isActive ? "#8b5cf620" : isDone ? "#14b8a610" : "#0a0e14",
-                        borderColor: isActive ? "#8b5cf640" : isDone ? "#14b8a625" : "#1e2d3d",
-                      }}
-                    >
-                      <div>
-                        <span
-                          className="font-bold uppercase tracking-widest"
-                          style={{ fontSize: 9, color: isActive ? "#a78bfa" : isDone ? "#14b8a6" : "#475569" }}
-                        >
-                          {s.label}
-                        </span>
-                        <span className="ml-2 text-slate-600" style={{ fontSize: 9 }}>{s.sublabel}</span>
-                      </div>
-                      <div className="flex gap-1">
-                        {s.layers.map(l => (
-                          <span
-                            key={l}
-                            className="px-1.5 py-0.5 rounded font-mono"
-                            style={{
-                              fontSize: 8,
-                              background: l.includes("L2") ? "#1e3a4a" : l.includes("IP") ? "#2d1b4e" : "#1a2e1e",
-                              color: l.includes("L2") ? "#06b6d4" : l.includes("IP") ? "#a78bfa" : "#4ade80",
-                            }}
-                          >
-                            {l}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Status bar */}
-            <div className="mt-3 px-3 py-2 rounded-lg border border-purple-500/20 bg-purple-500/5 flex items-center gap-2">
-              <Info size={11} className="text-purple-400 shrink-0" />
-              <span className="text-purple-300 text-xs">{STEP_LABELS[step]}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Right: Routing table */}
-        <div className="w-80 shrink-0 glass-panel rounded-xl border border-white/5 flex flex-col overflow-hidden">
-          <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
-            <span className="text-slate-400 uppercase tracking-widest font-bold" style={{ fontSize: 9 }}>
-              Routing Table
-            </span>
-            <span className="font-mono text-slate-600" style={{ fontSize: 9 }}>
-              {ROUTING_TABLE.length} entries
-            </span>
-          </div>
-          <div className="flex-1 overflow-y-auto logs-scroll">
-            <table className="w-full text-xs">
+          <div className="p-2">
+            <table className="w-full text-xs text-left">
               <thead>
-                <tr className="border-b border-white/5">
-                  {["Network/Mask", "Next Hop", "If", "Metric"].map(h => (
-                    <th key={h} className="px-3 py-2 text-left text-slate-600 uppercase tracking-widest font-bold" style={{ fontSize: 8 }}>
-                      {h}
-                    </th>
-                  ))}
+                <tr className="text-slate-500">
+                  <th className="font-medium pb-2">Prefix / Mask</th>
+                  <th className="font-medium pb-2 text-right">Output Port</th>
                 </tr>
               </thead>
               <tbody>
-                {ROUTING_TABLE.map((route, i) => {
-                  const isMatch = matchedRoute?.network === route.network && matchedRoute?.mask === route.mask;
-                  const isChecking = step === "lookup";
+                {routingTable.map((route, i) => {
+                  const isMatch = phase === "ROUTING" && route.port === targetPort;
                   return (
-                    <tr
-                      key={i}
-                      className="border-b border-white/3 transition-all duration-300"
-                      style={{
-                        background: isMatch
-                          ? "rgba(139,92,246,0.12)"
-                          : isChecking && i <= stepIdx
-                          ? "rgba(6,182,212,0.04)"
-                          : "transparent",
-                      }}
-                    >
-                      <td className="px-3 py-2 font-mono" style={{ color: isMatch ? "#a78bfa" : "#94a3b8" }}>
-                        {route.network}/{route.mask}
-                      </td>
-                      <td className="px-3 py-2 font-mono text-cyan-400/70">{route.nextHop}</td>
-                      <td className="px-3 py-2 text-slate-500">{route.interface}</td>
-                      <td className="px-3 py-2 text-slate-500">{route.metric}</td>
+                    <tr key={i} className={`border-t border-white/5 transition-colors ${isMatch ? "bg-cyan-500/10" : ""}`}>
+                      <td className={`py-2 font-mono ${isMatch ? "text-cyan-400 font-bold" : "text-slate-400"}`}>{route.prefix}</td>
+                      <td className={`py-2 font-mono text-right ${isMatch ? "text-cyan-400 font-bold" : "text-slate-500"}`}>Port {route.port}</td>
                     </tr>
-                  );
+                  )
                 })}
               </tbody>
             </table>
           </div>
-          {matchedRoute && (
-            <div className="p-3 border-t border-purple-500/20 bg-purple-500/5">
-              <div className="text-purple-400 uppercase tracking-widest font-bold mb-1" style={{ fontSize: 9 }}>
-                LPM Winner
+        </div>
+
+        <div className="flex-1 glass-panel rounded-xl border border-white/5 relative overflow-hidden canvas-grid flex items-center justify-center">
+          {/* Centered Canvas Coordinate System Wrapper */}
+          <div className="relative w-[800px] h-[500px]" style={{ transform: "scale(0.9)", transformOrigin: "center" }}>
+            <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 800 500">
+              <line x1={port0Pos.x} y1={port0Pos.y} x2={routerPos.x} y2={routerPos.y} stroke="#1e3148" strokeWidth="3" strokeDasharray="8 4" />
+              <line x1={routerPos.x} y1={routerPos.y} x2={port1Pos.x} y2={port1Pos.y} stroke="#1e3148" strokeWidth="3" strokeDasharray="8 4" />
+              <line x1={routerPos.x} y1={routerPos.y} x2={port2Pos.x} y2={port2Pos.y} stroke="#1e3148" strokeWidth="3" strokeDasharray="8 4" />
+              <line x1={routerPos.x} y1={routerPos.y} x2={port3Pos.x} y2={port3Pos.y} stroke="#1e3148" strokeWidth="3" strokeDasharray="8 4" />
+            </svg>
+
+            {/* Port 0 */}
+            <div className="absolute flex flex-col items-center transform -translate-x-1/2 -translate-y-1/2" style={{ left: port0Pos.x, top: port0Pos.y }}>
+              <div className="absolute -top-3 px-2 py-0.5 bg-[#0a0e14] border border-white/10 text-[10px] font-bold text-slate-400 rounded-full shadow-sm z-10 whitespace-nowrap">
+                PORT 0 (ETH)
               </div>
-              <div className="font-mono text-white text-xs">
-                {matchedRoute.network}/{matchedRoute.mask} → {matchedRoute.nextHop}
-              </div>
-              <div className="text-slate-500 mt-1" style={{ fontSize: 10 }}>
-                Most specific prefix match wins
+              <div className="w-16 h-16 bg-[#0c1219] border-2 border-slate-700/50 rounded-lg flex items-center justify-center shadow-sm relative">
+                <SlidersVertical className="text-slate-400" size={28} />
               </div>
             </div>
-          )}
+
+            {/* Router */}
+            <div className="absolute flex flex-col items-center transform -translate-x-1/2 -translate-y-1/2" style={{ left: routerPos.x, top: routerPos.y }}>
+              <div className="w-24 h-24 bg-[#0a0e14] border-2 border-cyan-500/30 rounded-2xl flex items-center justify-center shadow-md relative group">
+                <div className="absolute inset-0 bg-cyan-500/10 rounded-2xl group-hover:bg-cyan-500/20 transition-colors" />
+                <Router className="text-cyan-400 relative z-10" size={40} />
+              </div>
+            </div>
+
+            {/* Port 1 */}
+            <div className="absolute flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2" style={{ left: port1Pos.x, top: port1Pos.y }}>
+              <div className="absolute -top-3 px-2 py-0.5 bg-[#0a0e14] border border-white/10 text-[10px] font-bold text-slate-400 rounded-full shadow-sm z-10 whitespace-nowrap">
+                PORT 1
+              </div>
+              <div className="w-16 h-16 bg-[#0c1219] border-2 border-slate-700/50 rounded-lg flex items-center justify-center shadow-sm relative">
+                <Network className="text-slate-400" size={28} />
+              </div>
+            </div>
+
+            {/* Port 2 */}
+            <div className="absolute flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2" style={{ left: port2Pos.x, top: port2Pos.y }}>
+              <div className="absolute -top-3 px-2 py-0.5 bg-[#0a0e14] border border-white/10 text-[10px] font-bold text-slate-400 rounded-full shadow-sm z-10 whitespace-nowrap">
+                PORT 2
+              </div>
+              <div className="w-16 h-16 bg-[#0c1219] border-2 border-slate-700/50 rounded-lg flex items-center justify-center shadow-sm relative">
+                <Network className="text-slate-400" size={28} />
+              </div>
+            </div>
+
+            {/* Port 3 */}
+            <div className="absolute flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2" style={{ left: port3Pos.x, top: port3Pos.y }}>
+              <div className="absolute -top-3 px-2 py-0.5 bg-[#0a0e14] border border-white/10 text-[10px] font-bold text-slate-400 rounded-full shadow-sm z-10 whitespace-nowrap">
+                PORT 3
+              </div>
+              <div className="w-16 h-16 bg-[#0c1219] border-2 border-slate-700/50 rounded-lg flex items-center justify-center shadow-sm relative">
+                <Usb className="text-slate-400" size={28} />
+              </div>
+            </div>
+
+            {/* Packet */}
+            <div 
+              className="absolute rounded-full shadow-md transform -translate-x-1/2 -translate-y-1/2 z-20"
+              style={{
+                left: pPos.x,
+                top: pPos.y,
+                transition: phase === "IDLE" ? "none" : "all 1s ease-in-out",
+                opacity: phase === "IDLE" ? 0 : 1,
+                width: 16,
+                height: 16,
+                background: "#22d3ee",
+                boxShadow: "0 0 15px #22d3ee",
+              }}
+            />
+          </div>
         </div>
       </div>
     </SimulatorLayout>
   );
 }
+
+

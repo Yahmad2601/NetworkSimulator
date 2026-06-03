@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
+import { useLocation } from "wouter";
 import {
   Activity,
+  ArrowLeft,
   Clock,
   Cpu,
-  ShieldCheck,
   Wifi,
   ZapOff,
 } from "lucide-react";
@@ -31,6 +32,7 @@ function getTimestamp() {
 }
 
 export default function Simulator() {
+  const [, navigate] = useLocation();
   const [mode, setMode] = useState<"simulation" | "live">("simulation");
   const [scanning, setScanning] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -104,21 +106,26 @@ export default function Simulator() {
         style={{ background: "rgba(13,21,32,0.95)", backdropFilter: "blur(12px)" }}
       >
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ background: "linear-gradient(135deg, #06b6d4, #0891b2)" }}
-            >
-              <ShieldCheck size={18} className="text-[#0a0e14]" />
-            </div>
-            <div>
-              <h1 className="glow-text text-white font-bold tracking-tight text-base leading-none">
-                NetSec Simulator
+          <button
+            onClick={() => navigate("/")}
+            className="flex items-center gap-1.5 text-slate-500 hover:text-slate-300 transition-colors group mr-1"
+          >
+            <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
+            <span className="text-xs uppercase tracking-widest" style={{ fontSize: 9 }}>Menu</span>
+          </button>
+          <div className="w-px h-5 bg-white/8" />
+          <img src="/logo.png" alt="Globaltech" className="h-8 w-auto" />
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-white font-bold tracking-tight text-sm leading-none" style={{
+                textShadow: `0 0 20px #06b6d450`,
+              }}>
+                Cybersecurity Network Simulator
               </h1>
-              <p className="text-slate-500 text-xs mt-0.5 uppercase tracking-widest" style={{ fontSize: 9 }}>
-                Cybersecurity Network Intelligence Platform
-              </p>
             </div>
+            <p className="text-slate-500 uppercase tracking-widest mt-0.5" style={{ fontSize: 9 }}>
+              Command Center
+            </p>
           </div>
         </div>
 
