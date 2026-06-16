@@ -42,9 +42,9 @@ const Packet = ({ req, onStep, onComplete }: { req: PacketData, onStep: any, onC
   useEffect(() => {
     if (step > 6) {
       onComplete(req.id);
-      return;
+      return undefined;
     }
-    
+
     // Pass execution control to parent to handle state/acl highlights, which returns how long to pause
     const delay = onStep(req.id, step, req);
 
@@ -52,6 +52,7 @@ const Packet = ({ req, onStep, onComplete }: { req: PacketData, onStep: any, onC
       const t = setTimeout(() => setStep(s => s + 1), delay);
       return () => clearTimeout(t);
     }
+    return undefined;
   }, [step, req, onStep, onComplete]);
 
   const isOutbound = req.type === 'out-web';

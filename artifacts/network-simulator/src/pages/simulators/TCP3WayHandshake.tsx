@@ -23,7 +23,7 @@ export default function TCP3WayHandshake() {
       case 0: return "Connection is closed. The server is listening for incoming connection requests.";
       case 1: return "Client sends a SYN packet with a random Sequence Number (0) to ask the server to synchronize.";
       case 2: return "Server acknowledges the Client's request (ACK=1) and sends its own SYN request with its own random Sequence Number (0).";
-      case 3: return "Client acknowledges the Server's SYN. The two-way connection is now fully established. Data transfer can begin.";
+      case 3: return "Client acknowledges the Server's SYN. The three-way handshake is complete and the connection is now fully established. Data transfer can begin.";
       default: return "";
     }
   };
@@ -39,12 +39,11 @@ export default function TCP3WayHandshake() {
 
   // Animation complete effect
   useEffect(() => {
-    if (animating) {
-      const timer = setTimeout(() => {
-        setAnimating(false);
-      }, 1500); // 1.5s transit animation
-      return () => clearTimeout(timer);
-    }
+    if (!animating) return undefined;
+    const timer = setTimeout(() => {
+      setAnimating(false);
+    }, 1500); // 1.5s transit animation
+    return () => clearTimeout(timer);
   }, [animating, step]);
 
   const reset = () => {

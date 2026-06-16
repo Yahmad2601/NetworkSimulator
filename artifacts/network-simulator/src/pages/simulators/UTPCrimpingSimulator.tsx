@@ -354,7 +354,7 @@ export default function UTPCrimpingSimulator() {
                        {slotsA.map((wireId, idx) => (
                           <div 
                             key={`slotA-${idx}`} 
-                            ref={el => slotRefsA.current[idx] = el}
+                            ref={el => { slotRefsA.current[idx] = el; }}
                             onClick={() => handleSlotClick('A', idx)}
                             className={`flex-1 flex flex-col items-center justify-end border-x border-t-0 relative pb-2 transition-colors cursor-pointer hover:bg-white/5 ${errorSlotsA[idx] && testResult === 'error' ? 'bg-[#ef4444]/30 border-[#ef4444]' : 'bg-black/40 border-white/5'}`}
                           >
@@ -377,7 +377,7 @@ export default function UTPCrimpingSimulator() {
                        {slotsB.map((wireId, idx) => (
                           <div 
                             key={`slotB-${idx}`} 
-                            ref={el => slotRefsB.current[idx] = el}
+                            ref={el => { slotRefsB.current[idx] = el; }}
                             onClick={() => handleSlotClick('B', idx)}
                             className={`flex-1 flex flex-col items-center justify-end border-x border-t-0 relative pb-2 transition-colors cursor-pointer hover:bg-white/5 ${errorSlotsB[idx] && testResult === 'error' ? 'bg-[#ef4444]/30 border-[#ef4444]' : 'bg-black/40 border-white/5'}`}
                           >

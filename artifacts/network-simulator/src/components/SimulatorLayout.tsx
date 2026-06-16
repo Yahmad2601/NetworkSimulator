@@ -11,7 +11,7 @@ export interface FooterControl {
   min?: number;
   max?: number;
   step?: number;
-  variant?: "primary" | "secondary" | "danger" | "warning" | "cyan" | "teal";
+  variant?: "primary" | "secondary" | "danger" | "warning" | "cyan" | "teal" | "purple";
   disabled?: boolean;
   icon?: ReactNode;
   onChange?: (val: string | number | boolean) => void;
@@ -130,6 +130,7 @@ function FooterControlRenderer({ ctrl }: { ctrl: FooterControl }) {
       warning: "bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20",
       cyan: "bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20",
       teal: "text-[#0a0e14] font-bold hover:scale-105 active:scale-95",
+      purple: "bg-purple-500/10 border border-purple-500/30 text-purple-400 hover:bg-purple-500/20",
     };
     const variantBg: Record<string, string> = {
       primary: "linear-gradient(135deg, #14b8a6, #0891b2)",

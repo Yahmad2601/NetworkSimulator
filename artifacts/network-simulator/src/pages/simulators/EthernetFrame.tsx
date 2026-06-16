@@ -35,7 +35,7 @@ export default function EthernetFrame() {
 
   // FCS flash effect
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval> | undefined;
     if (step === 4) {
       interval = setInterval(() => {
         const randomHex = Math.floor(Math.random() * 0xffffffff).toString(16).toUpperCase().padStart(8, '0');
@@ -44,7 +44,9 @@ export default function EthernetFrame() {
     } else if (step > 4) {
       setFcsFlash("0x4A3B2C1D");
     }
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [step]);
 
   const footerControls: FooterControl[] = [

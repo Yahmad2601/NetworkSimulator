@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation } from "wouter";
 import {
   Activity,
@@ -41,6 +41,17 @@ export default function Simulator() {
   const [uptime] = useState("14d 07:22:41");
   const [latency, setLatency] = useState(1.2);
 
+  // Tracks pending discovery timeouts so they can be cancelled on reset/unmount.
+  const discoveryTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const clearDiscoveryTimers = useCallback(() => {
+    discoveryTimers.current.forEach(clearTimeout);
+    discoveryTimers.current = [];
+  }, []);
+
+  // Cancel any in-flight discovery timeouts when the component unmounts.
+  useEffect(() => clearDiscoveryTimers, [clearDiscoveryTimers]);
+
   const selectedNode = nodes.find(n => n.id === selectedNodeId) ?? null;
   const threatsCount = nodes.filter(n => n.status === "threat").length;
 
@@ -75,23 +86,26 @@ export default function Simulator() {
     setScanning(true);
     // Burst log entries
     for (let i = 0; i < 5; i++) {
-      setTimeout(() => addLog(), i * 120);
+      discoveryTimers.current.push(setTimeout(() => addLog(), i * 120));
     }
-    setTimeout(() => {
-      setScanning(false);
-      setLogs(prev => [
-        ...prev,
-        {
-          id: makeId(),
-          timestamp: getTimestamp(),
-          event: `Network Discovery Complete — ${nodes.length} nodes mapped, ${threatsCount} threat(s) flagged`,
-          type: threatsCount > 0 ? "warning" : "success",
-        },
-      ]);
-    }, 5000);
+    discoveryTimers.current.push(
+      setTimeout(() => {
+        setScanning(false);
+        setLogs(prev => [
+          ...prev,
+          {
+            id: makeId(),
+            timestamp: getTimestamp(),
+            event: `Network Discovery Complete — ${nodes.length} nodes mapped, ${threatsCount} threat(s) flagged`,
+            type: threatsCount > 0 ? "warning" : "success",
+          },
+        ]);
+      }, 5000),
+    );
   };
 
   const handleReset = () => {
+    clearDiscoveryTimers();
     setNodes(NODES);
     setLogs(INITIAL_LOGS);
     setSelectedNodeId(null);

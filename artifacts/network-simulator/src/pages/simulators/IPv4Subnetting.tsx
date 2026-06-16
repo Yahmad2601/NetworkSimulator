@@ -1,61 +1,26 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { Network, Search, HardDrive, Shield } from "lucide-react";
+import { useState } from "react";
+import { Network, HardDrive, Shield } from "lucide-react";
 import SimulatorLayout, { FooterControl } from "../../components/SimulatorLayout";
-
-// Helper functions for IP math
-const ipToNumber = (ip: string): number => {
-  return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0) >>> 0;
-};
-
-const numberToIp = (num: number): string => {
-  return [
-    (num >>> 24) & 255,
-    (num >>> 16) & 255,
-    (num >>> 8) & 255,
-    num & 255
-  ].join('.');
-};
-
-const getClass = (ip: string) => {
-  const firstOctet = parseInt(ip.split('.')[0], 10);
-  if (firstOctet >= 1 && firstOctet <= 126) return "Class A";
-  if (firstOctet >= 128 && firstOctet <= 191) return "Class B";
-  if (firstOctet >= 192 && firstOctet <= 223) return "Class C";
-  if (firstOctet >= 224 && firstOctet <= 239) return "Class D (Multicast)";
-  if (firstOctet >= 240 && firstOctet <= 255) return "Class E (Experimental)";
-  return "Unknown";
-};
-
-const isValidIp = (ip: string) => {
-  const parts = ip.split('.');
-  if (parts.length !== 4) return false;
-  return parts.every(p => {
-    const num = parseInt(p, 10);
-    return num >= 0 && num <= 255 && !isNaN(num) && p === num.toString();
-  });
-};
+import { computeSubnet, getIpClass, isValidIp, numberToIp } from "../../lib/ip";
 
 export default function IPv4Subnetting() {
   const [baseIpInput, setBaseIpInput] = useState("192.168.1.0");
   const [cidr, setCidr] = useState(24);
 
   const isValid = isValidIp(baseIpInput);
-  
+
   const parsedIp = isValid ? baseIpInput : "0.0.0.0";
-  const ipNum = ipToNumber(parsedIp);
-  const maskNum = cidr === 0 ? 0 : (~0 << (32 - cidr)) >>> 0;
-  const wildcardNum = ~maskNum >>> 0;
-  const networkNum = (ipNum & maskNum) >>> 0;
-  const broadcastNum = (networkNum | wildcardNum) >>> 0;
-  const firstUsableNum = cidr >= 31 ? networkNum : (networkNum + 1) >>> 0;
-  const lastUsableNum = cidr >= 31 ? broadcastNum : (broadcastNum - 1) >>> 0;
-
-  const totalHosts = cidr === 32 ? 1 : cidr === 31 ? 2 : Math.pow(2, 32 - cidr) - 2;
-  const defaultCidr = parsedIp.startsWith("10.") ? 8 : (parsedIp.startsWith("172.") ? 16 : 24);
-  const borrowedBits = Math.max(0, cidr - defaultCidr);
-  const totalSubnets = Math.pow(2, borrowedBits);
-
-  const binaryString = ipNum.toString(2).padStart(32, '0');
+  const {
+    maskNum,
+    wildcardNum,
+    networkNum,
+    broadcastNum,
+    firstUsableNum,
+    lastUsableNum,
+    totalHosts,
+    totalSubnets,
+    binaryString,
+  } = computeSubnet(parsedIp, cidr);
 
   const footerControls: FooterControl[] = [
     {
@@ -169,7 +134,7 @@ export default function IPv4Subnetting() {
              {isValid && (
                <div className="flex items-center gap-2 mt-2 bg-[#22c55e]/10 border border-[#22c55e]/20 p-2 rounded text-[#22c55e]">
                  <Shield size={14} />
-                 <span className="text-[11px] font-bold uppercase">Initial Network Class: {getClass(parsedIp)}</span>
+                 <span className="text-[11px] font-bold uppercase">Initial Network Class: {getIpClass(parsedIp)}</span>
                </div>
              )}
           </div>
