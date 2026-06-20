@@ -35,6 +35,11 @@ const IPv6Addressing = lazy(() => import("@/pages/simulators/IPv6Addressing"));
 const TracerouteSimulator = lazy(() => import("@/pages/simulators/TracerouteSimulator"));
 const VLANSimulator = lazy(() => import("@/pages/simulators/VLANSimulator"));
 const STPSimulator = lazy(() => import("@/pages/simulators/STPSimulator"));
+const SQLInjection = lazy(() => import("@/pages/simulators/SQLInjection"));
+const XSSSimulator = lazy(() => import("@/pages/simulators/XSSSimulator"));
+const PKICertChain = lazy(() => import("@/pages/simulators/PKICertChain"));
+const DDoSSimulator = lazy(() => import("@/pages/simulators/DDoSSimulator"));
+const PortScanner = lazy(() => import("@/pages/simulators/PortScanner"));
 
 function LoadingScreen() {
   return (
@@ -93,6 +98,11 @@ function Router() {
       <Route path="/sim/traceroute" component={TracerouteSimulator} />
       <Route path="/sim/vlan" component={VLANSimulator} />
       <Route path="/sim/stp" component={STPSimulator} />
+      <Route path="/sim/sql-injection" component={SQLInjection} />
+      <Route path="/sim/xss" component={XSSSimulator} />
+      <Route path="/sim/pki" component={PKICertChain} />
+      <Route path="/sim/ddos" component={DDoSSimulator} />
+      <Route path="/sim/port-scanning" component={PortScanner} />
     </Switch>
   );
 }
