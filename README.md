@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🛡️ Cybersecurity Network Simulator
+# Cybersecurity Network Simulator
 
 ### An interactive, visual playground for learning networking & cybersecurity — from crimping a cable to defeating a DDoS attack.
 
@@ -18,29 +18,29 @@
 
 ---
 
-## 📖 Overview
+##  Overview
 
 **Cybersecurity Network Simulator** is a browser-based learning platform of **36 interactive simulators** that turn abstract networking and security concepts into things you can *see, drive, and break*. Each module animates exactly what happens on the wire — TTL fields decrementing hop by hop, an 802.1Q tag being inserted on a trunk, a SYN flood saturating a connection table, a TLS 1.3 channel snapping from plaintext to encrypted — so the "aha" lands visually instead of on a whiteboard.
 
 It spans the **entire OSI stack (Layers 1–7)** plus a deep **offensive & defensive security** track, making it equally useful for students studying for certifications (Network+, Security+, CCNA), instructors who need a live teaching aid, and engineers who want an intuitive refresher.
 
-> ⚠️ **Actively evolving.** The 36 simulators below are *not* the final set — this is a continuously growing collection, with more networking and cybersecurity modules on the way.
+>  **Actively evolving.** The 36 simulators below are *not* the final set — this is a continuously growing collection, with more networking and cybersecurity modules on the way.
 
 ---
 
-## ✨ Why this project stands out
+##  Why this project stands out
 
 This isn't a slideshow of pre-rendered GIFs. Every simulator is a real, interactive model with engineering rigor behind it:
 
-- **🎯 Technically accurate, not hand-wavy.** The protocol behaviors are modeled faithfully — DHCP's DORA exchange and T1/T2 lease timers, the TLS 1.3 1-RTT plaintext→encrypted boundary, 802.1D Spanning Tree root election and path costs, EUI-64 SLAAC derivation, RFC 5952 IPv6 compression, and more. Cryptography uses the **real Web Crypto SHA-256**, not a fake.
-- **🧪 Tested to be correct.** The domain logic lives in **14 pure, framework-free modules** covered by **118 unit tests** (worked examples, RFC test vectors, and exhaustive property checks like "both Diffie–Hellman parties always derive the same key").
-- **🔐 Responsible security content.** Offensive modules (SQL injection, XSS, port scanning, DDoS) are framed for **authorized testing and education** — notably, the XSS simulator *depicts* a payload's effect and never executes user input.
-- **⚡ Production-grade frontend.** Strict TypeScript, every simulator **code-split into its own lazy-loaded chunk**, smooth Framer Motion animations, and a consistent design system.
-- **📚 Breadth that maps to a curriculum.** OSI Layers 1–7, routing & switching, transport, cryptography, and attack/defense — a single coherent body of work, not a one-off demo.
+- ** Technically accurate, not hand-wavy.** The protocol behaviors are modeled faithfully — DHCP's DORA exchange and T1/T2 lease timers, the TLS 1.3 1-RTT plaintext→encrypted boundary, 802.1D Spanning Tree root election and path costs, EUI-64 SLAAC derivation, RFC 5952 IPv6 compression, and more. Cryptography uses the **real Web Crypto SHA-256**, not a fake.
+- ** Tested to be correct.** The domain logic lives in **14 pure, framework-free modules** covered by **118 unit tests** (worked examples, RFC test vectors, and exhaustive property checks like "both Diffie–Hellman parties always derive the same key").
+- ** Responsible security content.** Offensive modules (SQL injection, XSS, port scanning, DDoS) are framed for **authorized testing and education** — notably, the XSS simulator *depicts* a payload's effect and never executes user input.
+- ** Production-grade frontend.** Strict TypeScript, every simulator **code-split into its own lazy-loaded chunk**, smooth Framer Motion animations, and a consistent design system.
+- ** Breadth that maps to a curriculum.** OSI Layers 1–7, routing & switching, transport, cryptography, and attack/defense — a single coherent body of work, not a one-off demo.
 
 ---
 
-## 🖼️ A look inside
+##  A look inside
 
 | Diffie–Hellman Key Exchange | Hashing & Salting (live SHA-256) |
 |:---:|:---:|
@@ -52,16 +52,16 @@ This isn't a slideshow of pre-rendered GIFs. Every simulator is a real, interact
 
 ---
 
-## 🧭 The simulator catalog
+##  The simulator catalog
 
 > 36 simulators today — and counting.
 
-### 🧱 OSI & TCP/IP foundations
+###  OSI & TCP/IP foundations
 - **OSI Encapsulation** — step through the "Russian nesting doll" of headers added down the stack and peeled off on the other side
 - **TCP/IP 4-Layer Stack** — map theory to the real DoD model
 - **Network Command Center** — live topology, traffic monitoring, and threat detection overview
 
-### 🔌 Layers 1–2 · Physical & Data Link
+###  Layers 1–2 · Physical & Data Link
 - **UTP Cable Crimping** — T568A / T568B wiring via drag-and-drop
 - **Ethernet Frame Builder** — assemble an IEEE 802.3 frame, MAC + EtherType + FCS
 - **PoE Topology** — Power over Ethernet and cable-length limits
@@ -70,7 +70,7 @@ This isn't a slideshow of pre-rendered GIFs. Every simulator is a real, interact
 - **VLANs & 802.1Q Tagging** — isolated broadcast domains and trunk tagging
 - **Spanning Tree Protocol (802.1D)** — root election, port roles, and loop prevention
 
-### 🌐 Layer 3 · Network
+###  Layer 3 · Network
 - **IPv4 Subnetting & CIDR** — slice an address into network/host with a live binary visualizer
 - **IPv6 Addressing** — RFC 5952 compression, address-type classification, and SLAAC / EUI-64
 - **Layer 3 Routing** — Longest Prefix Match, TTL decrement, re-encapsulation
@@ -79,26 +79,26 @@ This isn't a slideshow of pre-rendered GIFs. Every simulator is a real, interact
 - **Network Transmission Types** — unicast, broadcast, multicast, anycast
 - **Traceroute & ICMP TTL** — map every hop by abusing the TTL field
 
-### 🚚 Layer 4 · Transport
+###  Layer 4 · Transport
 - **TCP 3-Way Handshake** — SYN, SYN-ACK, ACK and connection state
 - **TCP Sliding Window** — flow control, congestion, and retransmission
 - **Layer 4 Port Multiplexing** — one IP, many services
 - **Well-Known Ports** — listeners, accept/reject, encrypted vs plaintext
 
-### 🗂️ Layers 5–7 · Session → Application
+###  Layers 5–7 · Session → Application
 - **Layer 5 Session Checkpointing** — resume vs restart on a dropped transfer
 - **Layer 6 Transformation** — coding, cryptography, and compression
 - **Layer 7 Protocol** — translating human intent into HTTP / SMTP / DNS
 - **DHCP & the DORA Process** — automatic addressing, broadcast, and lease renewal
 
-### 🔐 Cryptography & trust
+###  Cryptography & trust
 - **TLS 1.3 Handshake** — 1-RTT setup and the plaintext→encrypted boundary (vs TLS 1.2)
 - **Hashing & Salting** — real SHA-256, the avalanche effect, and defeating rainbow tables
 - **Diffie–Hellman Key Exchange** — a shared secret over a public channel
 - **PKI & Certificate Chains** — leaf → intermediate → root validation, and how trust breaks
 - **VPN Tunnel & Encapsulation** — bypassing a firewall via packet encapsulation
 
-### ⚔️ Offensive & defensive security
+###  Offensive & defensive security
 - **ARP & ARP Spoofing** — cache poisoning and Man-in-the-Middle
 - **SQL Injection** — breaking out of the data context, fixed by parameterized queries
 - **Cross-Site Scripting (XSS)** — stored vs reflected, with output encoding / CSP / HttpOnly defenses *(effects depicted, never executed)*
@@ -108,7 +108,7 @@ This isn't a slideshow of pre-rendered GIFs. Every simulator is a real, interact
 
 ---
 
-## 🛠️ Tech stack
+##  Tech stack
 
 | Area | Tools |
 |---|---|
@@ -122,7 +122,7 @@ This isn't a slideshow of pre-rendered GIFs. Every simulator is a real, interact
 
 ---
 
-## 🧪 Tested to be correct
+##  Tested to be correct
 
 Every simulator's logic is extracted into a **pure, dependency-free module** so the *behavior* can be verified independently of the UI. A few examples of what the test suite pins down:
 
@@ -139,14 +139,14 @@ pnpm -C artifacts/network-simulator test
 
 ---
 
-## 🏗️ Project structure
+##  Project structure
 
 A pnpm monorepo; the simulator app is the centerpiece.
 
 ```
 Network-Sim/
 ├── artifacts/
-│   ├── network-simulator/          # ⭐ the main app (Vite + React)
+│   ├── network-simulator/          #  the main app (Vite + React)
 │   │   ├── src/
 │   │   │   ├── pages/simulators/    # one component per simulator
 │   │   │   ├── lib/                 # pure, tested domain models (*.ts + *.test.ts)
@@ -161,7 +161,7 @@ Each simulator is **self-contained and lazy-loaded**: a tested `lib/<topic>.ts` 
 
 ---
 
-## 🚀 Getting started
+##  Getting started
 
 **Prerequisites:** Node.js 20+ and [pnpm](https://pnpm.io) (via Corepack).
 
@@ -185,15 +185,15 @@ pnpm -C artifacts/network-simulator build
 
 ---
 
-## 🗺️ Roadmap
+##  Roadmap
 
 This collection is **continuously expanding**. Planned and in-progress additions include deeper protocol walk-throughs (DNS resolution, BGP), more cryptography (elliptic-curve, certificate transparency), wireless & WPA handshakes, and additional attack/defense scenarios (CSRF, DNS spoofing, IDS/IPS). Suggestions are welcome.
 
 ---
 
-## 🎓 Skills demonstrated
+##  Skills demonstrated
 
-For reviewers and recruiters, this project showcases:
+This project showcases:
 
 - **Deep networking & security domain knowledge** across the full OSI stack and offensive/defensive disciplines
 - **Translating complex protocols into accurate, testable models** — and proving correctness with unit tests
@@ -205,7 +205,7 @@ For reviewers and recruiters, this project showcases:
 
 <div align="center">
 
-**Built to make networking and cybersecurity click. ⚡**
+**Built to make networking and cybersecurity click. **
 
 *More simulators on the way — star the repo to follow along.*
 
