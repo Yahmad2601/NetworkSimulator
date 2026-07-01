@@ -40,6 +40,7 @@ const XSSSimulator = lazy(() => import("@/pages/simulators/XSSSimulator"));
 const PKICertChain = lazy(() => import("@/pages/simulators/PKICertChain"));
 const DDoSSimulator = lazy(() => import("@/pages/simulators/DDoSSimulator"));
 const PortScanner = lazy(() => import("@/pages/simulators/PortScanner"));
+const ManInTheBox = lazy(() => import("@/pages/simulators/ManInTheBox"));
 
 function LoadingScreen() {
   return (
@@ -103,6 +104,7 @@ function Router() {
       <Route path="/sim/pki" component={PKICertChain} />
       <Route path="/sim/ddos" component={DDoSSimulator} />
       <Route path="/sim/port-scanning" component={PortScanner} />
+      <Route path="/sim/cpu-man-in-the-box" component={ManInTheBox} />
     </Switch>
   );
 }

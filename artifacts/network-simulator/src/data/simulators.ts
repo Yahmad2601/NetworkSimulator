@@ -14,6 +14,19 @@ export interface SimulatorMeta {
 
 export const SIMULATORS: SimulatorMeta[] = [
   {
+    id: "cpu-man-in-the-box",
+    path: "/sim/cpu-man-in-the-box",
+    title: "CPU: The Man in the Box",
+    subtitle: "External Data Bus, Registers & Clock",
+    layer: "Hardware",
+    layerNum: null,
+    description: "Talk to a CPU the way the wires do — flip the 8 EDB switches, ring the CLK bell, and watch the Man decode your pattern, work the registers, and answer 2 + 3 on the bus.",
+    tags: ["CPU", "registers", "clock", "binary", "machine language", "8088"],
+    difficulty: "beginner",
+    color: "#f59e0b",
+    accentColor: "rgba(245,158,11,0.15)",
+  },
+  {
     id: "port-scanning",
     path: "/sim/port-scanning",
     title: "Port Scanning (nmap)",

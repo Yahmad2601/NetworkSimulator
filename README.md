@@ -9,8 +9,8 @@
 [![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white)](https://vite.dev)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38BDF8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 [![Vitest](https://img.shields.io/badge/tested_with-Vitest-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev)
-[![Tests](https://img.shields.io/badge/unit_tests-118_passing-22c55e)](#-tested-to-be-correct)
-[![Simulators](https://img.shields.io/badge/simulators-36_and_growing-f59e0b)](#-the-simulator-catalog)
+[![Tests](https://img.shields.io/badge/unit_tests-138_passing-22c55e)](#-tested-to-be-correct)
+[![Simulators](https://img.shields.io/badge/simulators-37_and_growing-f59e0b)](#-the-simulator-catalog)
 
 ![Home — the simulator command center](artifacts/network-simulator/docs/screenshots/home.png)
 
@@ -20,11 +20,11 @@
 
 ##  Overview
 
-**Cybersecurity Network Simulator** is a browser-based learning platform of **36 interactive simulators** that turn abstract networking and security concepts into things you can *see, drive, and break*. Each module animates exactly what happens on the wire — TTL fields decrementing hop by hop, an 802.1Q tag being inserted on a trunk, a SYN flood saturating a connection table, a TLS 1.3 channel snapping from plaintext to encrypted — so the "aha" lands visually instead of on a whiteboard.
+**Cybersecurity Network Simulator** is a browser-based learning platform of **37 interactive simulators** that turn abstract networking and security concepts into things you can *see, drive, and break*. Each module animates exactly what happens on the wire — TTL fields decrementing hop by hop, an 802.1Q tag being inserted on a trunk, a SYN flood saturating a connection table, a TLS 1.3 channel snapping from plaintext to encrypted — so the "aha" lands visually instead of on a whiteboard.
 
 It spans the **entire OSI stack (Layers 1–7)** plus a deep **offensive & defensive security** track, making it equally useful for students studying for certifications (Network+, Security+, CCNA), instructors who need a live teaching aid, and engineers who want an intuitive refresher.
 
->  **Actively evolving.** The 36 simulators below are *not* the final set — this is a continuously growing collection, with more networking and cybersecurity modules on the way.
+>  **Actively evolving.** The 37 simulators below are *not* the final set — this is a continuously growing collection, with more networking and cybersecurity modules on the way.
 
 ---
 
@@ -33,7 +33,7 @@ It spans the **entire OSI stack (Layers 1–7)** plus a deep **offensive & defen
 This isn't a slideshow of pre-rendered GIFs. Every simulator is a real, interactive model with engineering rigor behind it:
 
 - ** Technically accurate, not hand-wavy.** The protocol behaviors are modeled faithfully — DHCP's DORA exchange and T1/T2 lease timers, the TLS 1.3 1-RTT plaintext→encrypted boundary, 802.1D Spanning Tree root election and path costs, EUI-64 SLAAC derivation, RFC 5952 IPv6 compression, and more. Cryptography uses the **real Web Crypto SHA-256**, not a fake.
-- ** Tested to be correct.** The domain logic lives in **14 pure, framework-free modules** covered by **118 unit tests** (worked examples, RFC test vectors, and exhaustive property checks like "both Diffie–Hellman parties always derive the same key").
+- ** Tested to be correct.** The domain logic lives in **15 pure, framework-free modules** covered by **138 unit tests** (worked examples, RFC test vectors, and exhaustive property checks like "both Diffie–Hellman parties always derive the same key").
 - ** Responsible security content.** Offensive modules (SQL injection, XSS, port scanning, DDoS) are framed for **authorized testing and education** — notably, the XSS simulator *depicts* a payload's effect and never executes user input.
 - ** Production-grade frontend.** Strict TypeScript, every simulator **code-split into its own lazy-loaded chunk**, smooth Framer Motion animations, and a consistent design system.
 - ** Breadth that maps to a curriculum.** OSI Layers 1–7, routing & switching, transport, cryptography, and attack/defense — a single coherent body of work, not a one-off demo.
@@ -54,7 +54,10 @@ This isn't a slideshow of pre-rendered GIFs. Every simulator is a real, interact
 
 ##  The simulator catalog
 
-> 36 simulators today — and counting.
+> 37 simulators today — and counting.
+
+###  Computer architecture
+- **CPU: The Man in the Box** — flip the 8 External Data Bus switches, ring the CLK bell, and watch a tiny 8088 decode machine language, fill its AX–DX registers, and answer 2 + 3 on the bus
 
 ###  OSI & TCP/IP foundations
 - **OSI Encapsulation** — step through the "Russian nesting doll" of headers added down the stack and peeled off on the other side
@@ -134,7 +137,7 @@ Every simulator's logic is extracted into a **pure, dependency-free module** so 
 
 ```bash
 pnpm -C artifacts/network-simulator test
-# ✓ 14 test files · 118 tests passing
+# ✓ 15 test files · 138 tests passing
 ```
 
 ---
